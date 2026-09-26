@@ -1,4 +1,4 @@
-import { ApiError, GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import type { MediaType } from "@/types/media";
 
 export interface Candidate {
@@ -24,6 +24,7 @@ Select the candidates that truly match, best match first.
 
 Selection rules:
 - Judge on tone, mood, themes, pacing, genre feel and target audience, not just surface keywords or shared actors.
+- Hard requirements in the request must be respected: if it names a medium (anime, series, film), a genre, an era or a maturity level, skip every candidate that does not satisfy it.
 - If the user's title is anime, prefer anime; keep the same medium and maturity level where it matters.
 - Do not pad the list. Skip candidates that only loosely relate, even if that means returning fewer than the maximum. Never go below the minimum requested.
 - At most one sequel, prequel or same-franchise entry.
@@ -48,17 +49,21 @@ const RESPONSE_SCHEMA = {
   },
 };
 
-const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"];
-
-function isBusy(error: unknown): boolean {
-  return error instanceof ApiError && (error.status === 503 || error.status === 429);
-}
+// Each model has its own free-tier daily quota, so a quota error falls through to the next one.
+const MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-3-flash-preview",
+  "gemma-4-26b-a4b-it",
+  "gemini-flash-latest",
+];
+const HEDGE_AFTER_MS = 4000;
+const MODEL_TIMEOUT_MS = 12000;
 
 function describeCandidate(c: Candidate): string {
   const meta = [c.mediaType === "tv" ? "TV" : "Movie", c.year, c.genres.join("/")]
     .filter(Boolean)
     .join(", ");
-  return `[${c.key}] ${c.title} (${meta}) - ${c.overview.slice(0, 220)}`;
+  return `[${c.key}] ${c.title} (${meta}) - ${c.overview.slice(0, 160)}`;
 }
 
 function isRefined(value: unknown): value is Refined {
@@ -85,35 +90,67 @@ Return between ${options.min} and ${options.max} titles.
 Candidates:
 ${candidates.map(describeCandidate).join("\n")}`;
 
-  let lastError: unknown;
-  for (const model of MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          responseMimeType: "application/json",
-          responseJsonSchema: RESPONSE_SCHEMA,
-          httpOptions: { timeout: 20000 },
-        },
-      });
+  const attempt = async (model: string): Promise<Refined[]> => {
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseJsonSchema: RESPONSE_SCHEMA,
+        // Only gemini-flash-latest thinks by default; other models reject an explicit thinking config.
+        ...(model === "gemini-flash-latest" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        httpOptions: { timeout: MODEL_TIMEOUT_MS },
+      },
+    });
 
-      const parsed: unknown = JSON.parse(response.text ?? "[]");
-      const seen = new Set<string>();
-      const refined = (Array.isArray(parsed) ? parsed : [])
-        .filter(isRefined)
-        .filter((r) => allowed.has(r.key) && !seen.has(r.key) && seen.add(r.key))
-        .slice(0, options.max);
+    const parsed: unknown = JSON.parse(response.text ?? "[]");
+    const seen = new Set<string>();
+    const refined = (Array.isArray(parsed) ? parsed : [])
+      .filter(isRefined)
+      .filter((r) => allowed.has(r.key) && !seen.has(r.key) && seen.add(r.key))
+      .slice(0, options.max);
 
-      if (refined.length < Math.min(options.min, 3)) {
-        throw new Error("Refinement returned too few valid titles");
-      }
-      return refined;
-    } catch (error) {
-      lastError = error;
-      if (!isBusy(error)) throw error;
+    if (refined.length < Math.min(options.min, 3)) {
+      throw new Error("Refinement returned too few valid titles");
     }
-  }
-  throw lastError;
+    return refined;
+  };
+
+  // Hedged request: move to the next model as soon as one fails, or if it is slow,
+  // and take whichever produces a valid answer first.
+  return new Promise<Refined[]>((resolve, reject) => {
+    const failures: unknown[] = [];
+    let settled = false;
+    let started = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const startNext = () => {
+      if (settled || started >= MODELS.length) return;
+      const model = MODELS[started++];
+      timer = setTimeout(startNext, HEDGE_AFTER_MS);
+      attempt(model).then(
+        (result) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(result);
+        },
+        (error) => {
+          failures.push(error);
+          if (settled) return;
+          if (failures.length === MODELS.length) {
+            settled = true;
+            clearTimeout(timer);
+            reject(failures[0]);
+          } else {
+            clearTimeout(timer);
+            startNext();
+          }
+        }
+      );
+    };
+
+    startNext();
+  });
 }
