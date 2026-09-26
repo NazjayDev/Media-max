@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import ProviderLogos from "@/components/ProviderLogos";
 import { useWatchlist } from "@/components/Providers";
 import type { WatchlistEntry } from "@/types/media";
 
@@ -38,23 +39,12 @@ export default function ContinueWatching({ entry }: { entry: WatchlistEntry }) {
           </h2>
           <p className="mt-2 line-clamp-3 text-sm text-muted">{entry.blurb || entry.synopsis}</p>
           {entry.streamingProviders.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {entry.streamingProviders
-                .slice(0, 5)
-                .map((p) =>
-                  p.logoPath ? (
-                    <Image
-                      key={p.id}
-                      src={p.logoPath}
-                      alt={p.name}
-                      title={p.name}
-                      width={28}
-                      height={28}
-                      className="rounded-md ring-1 ring-border"
-                    />
-                  ) : null,
-                )}
-            </div>
+            <ProviderLogos
+              providers={entry.streamingProviders}
+              title={entry}
+              max={5}
+              className="mt-3 flex flex-wrap gap-2"
+            />
           )}
           <div className="mt-4 flex flex-wrap gap-2">
             <button

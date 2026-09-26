@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Discussion from "@/components/discussion/Discussion";
+import ProviderLogos from "@/components/ProviderLogos";
 import RatingChips from "@/components/RatingChips";
 import SaveButton from "@/components/SaveButton";
 import { useJson } from "@/lib/useJson";
@@ -75,28 +76,12 @@ export default function TitlePage() {
                 Where to stream
               </p>
               {item.streamingProviders.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {item.streamingProviders.map((p) =>
-                    p.logoPath ? (
-                      <Image
-                        key={p.id}
-                        src={p.logoPath}
-                        alt={p.name}
-                        title={p.name}
-                        width={36}
-                        height={36}
-                        className="rounded-lg ring-1 ring-border"
-                      />
-                    ) : (
-                      <span
-                        key={p.id}
-                        className="rounded-md bg-black/[.06] px-2 py-1 text-xs dark:bg-white/[.08]"
-                      >
-                        {p.name}
-                      </span>
-                    ),
-                  )}
-                </div>
+                <ProviderLogos
+                  providers={item.streamingProviders}
+                  title={item}
+                  size={36}
+                  className="flex flex-wrap gap-2"
+                />
               ) : (
                 <p className="text-sm text-muted">Not currently available to stream</p>
               )}

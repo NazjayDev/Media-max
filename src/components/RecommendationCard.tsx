@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import ProviderLogos from "@/components/ProviderLogos";
 import SaveButton from "@/components/SaveButton";
 import RatingChips from "@/components/RatingChips";
 import type { Recommendation } from "@/types/media";
@@ -63,28 +64,7 @@ export default function RecommendationCard({ item, index, footer }: Recommendati
 
         <div className="mt-auto pt-3">
           {item.streamingProviders.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {item.streamingProviders.map((provider) =>
-                provider.logoPath ? (
-                  <Image
-                    key={provider.id}
-                    src={provider.logoPath}
-                    alt={provider.name}
-                    title={provider.name}
-                    width={28}
-                    height={28}
-                    className="rounded-md ring-1 ring-border"
-                  />
-                ) : (
-                  <span
-                    key={provider.id}
-                    className="rounded-md bg-black/[.06] px-2 py-1 text-xs text-muted dark:bg-white/[.08]"
-                  >
-                    {provider.name}
-                  </span>
-                ),
-              )}
-            </div>
+            <ProviderLogos providers={item.streamingProviders} title={item} />
           ) : (
             <p className="text-xs text-muted">Not currently available to stream</p>
           )}
