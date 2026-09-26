@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import SaveButton from "@/components/SaveButton";
 import RatingChips from "@/components/RatingChips";
 import type { Recommendation } from "@/types/media";
@@ -9,7 +10,11 @@ interface RecommendationCardProps {
   footer?: React.ReactNode;
 }
 
-export default function RecommendationCard({ item, index, footer }: RecommendationCardProps) {
+export default function RecommendationCard({
+  item,
+  index,
+  footer,
+}: RecommendationCardProps) {
   return (
     <article
       className="animate-fade-up group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-from/10"
@@ -18,23 +23,36 @@ export default function RecommendationCard({ item, index, footer }: Recommendati
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
         <SaveButton item={item} />
         <RatingChips ratings={item.ratings} />
-        {item.posterPath ? (
-          <Image
-            src={item.posterPath}
-            alt={item.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted">
-            No poster available
-          </div>
-        )}
+        <Link
+          href={`/title/${item.mediaType}/${item.id}`}
+          aria-label={`Open ${item.title} and join the discussion`}
+          className="absolute inset-0 block"
+        >
+          {item.posterPath ? (
+            <Image
+              src={item.posterPath}
+              alt={item.title}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              className="object-cover transition duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted">
+              No poster available
+            </div>
+          )}
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
-        <h3 className="text-sm font-semibold leading-snug sm:text-base">{item.title}</h3>
+        <h3 className="text-sm font-semibold leading-snug sm:text-base">
+          <Link
+            href={`/title/${item.mediaType}/${item.id}`}
+            className="hover:underline"
+          >
+            {item.title}
+          </Link>
+        </h3>
         {item.why && (
           <p className="text-xs font-medium leading-5 text-accent-from sm:text-sm dark:text-violet-300">
             {item.why}
@@ -69,13 +87,21 @@ export default function RecommendationCard({ item, index, footer }: Recommendati
                   >
                     {provider.name}
                   </span>
-                )
+                ),
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted">Not currently available to stream</p>
+            <p className="text-xs text-muted">
+              Not currently available to stream
+            </p>
           )}
         </div>
+        <Link
+          href={`/title/${item.mediaType}/${item.id}`}
+          className="mt-2 text-xs text-muted transition hover:text-foreground"
+        >
+          Discuss this title
+        </Link>
         {footer}
       </div>
     </article>
