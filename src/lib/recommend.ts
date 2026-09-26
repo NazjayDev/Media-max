@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { cached } from "@/lib/cache";
+import { DAY_SECONDS, WATCH_REGION } from "@/lib/config";
 import {
   catalogKey,
   getCatalogEntry,
@@ -16,8 +17,6 @@ import {
 } from "@/lib/tmdb";
 import type { MediaType, Recommendation } from "@/types/media";
 
-const DAY_SECONDS = 24 * 60 * 60;
-const WATCH_REGION = process.env.TMDB_WATCH_REGION || "US";
 
 function poster(path: string | null): string | null {
   return path ? `${TMDB_IMAGE_BASE_URL}/w342${path}` : null;

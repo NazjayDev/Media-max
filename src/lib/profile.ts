@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/mongodb";
+import { ensureIndex, getDb } from "@/lib/mongodb";
 
 export interface ProfileDoc {
   _id: string; // userId
@@ -45,7 +45,7 @@ export async function profilesCollection() {
   const db = await getDb();
   if (!db) return null;
   const collection = db.collection<ProfileDoc>("profiles");
-  await collection.createIndex({ usernameLower: 1 }, { unique: true }).catch(() => undefined);
+  await ensureIndex(collection, { usernameLower: 1 }, { unique: true });
   return collection;
 }
 

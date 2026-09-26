@@ -1,10 +1,9 @@
-import { cached } from "@/lib/cache";
+import { cached, cachedMany } from "@/lib/cache";
+import { WATCH_REGION } from "@/lib/config";
 import type { MediaType, Recommendation, SearchResult, StreamingProvider } from "@/types/media";
 
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
-
-const DEFAULT_REGION = process.env.TMDB_WATCH_REGION || "US";
 
 function getAuthHeaders(): HeadersInit {
   const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
@@ -19,23 +18,36 @@ function getAuthHeaders(): HeadersInit {
 
 const CACHE_TTL_SECONDS = 12 * 60 * 60;
 
-export async function tmdbFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
+function tmdbUrl(path: string, params?: Record<string, string>): URL {
   const url = new URL(`${TMDB_API_BASE_URL}${path}`);
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value);
-    }
-  }
+  for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value);
+  return url;
+}
 
-  return cached(`tmdb:${url.pathname}${url.search}`, CACHE_TTL_SECONDS, async () => {
-    const res = await fetch(url, { headers: getAuthHeaders(), cache: "no-store" });
+const cacheKey = (url: URL) => `tmdb:${url.pathname}${url.search}`;
 
-    if (!res.ok) {
-      throw new Error(`TMDB request failed (${res.status}) for ${path}`);
-    }
+async function requestTmdb<T>(url: URL): Promise<T> {
+  const res = await fetch(url, { headers: getAuthHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`TMDB request failed (${res.status}) for ${url.pathname}`);
+  return res.json() as Promise<T>;
+}
 
-    return res.json() as Promise<T>;
-  });
+export async function tmdbFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
+  const url = tmdbUrl(path, params);
+  return cached(cacheKey(url), CACHE_TTL_SECONDS, () => requestTmdb<T>(url));
+}
+
+/**
+ * Fetches many TMDB paths with a single cache read. Shares cache entries with `tmdbFetch`, and a
+ * failed lookup yields undefined for that path instead of failing the whole batch.
+ */
+export async function tmdbFetchMany<T>(paths: string[]): Promise<(T | undefined)[]> {
+  const urls = new Map(paths.map((p) => [cacheKey(tmdbUrl(p)), tmdbUrl(p)]));
+  return cachedMany<T>(
+    paths.map((p) => cacheKey(tmdbUrl(p))),
+    CACHE_TTL_SECONDS,
+    (key) => requestTmdb<T>(urls.get(key)!).catch(() => undefined)
+  );
 }
 
 interface TmdbMultiSearchResult {
@@ -134,7 +146,7 @@ export async function lookupRecommendation(
   title: string,
   mediaType: MediaType,
   year?: number,
-  region: string = DEFAULT_REGION
+  region: string = WATCH_REGION
 ): Promise<Recommendation | null> {
   const params: Record<string, string> = { query: title, include_adult: "false" };
   if (year) {
@@ -183,7 +195,7 @@ export async function getWatchProviders(
 export async function getRecommendationsWithProviders(
   mediaType: MediaType,
   id: number,
-  region: string = DEFAULT_REGION
+  region: string = WATCH_REGION
 ): Promise<Recommendation[]> {
   const raw = (await fetchRawRecommendations(mediaType, id)).slice(0, 10);
 
@@ -215,7 +227,7 @@ interface TmdbTitleDetails {
 export async function getTitleCard(
   mediaType: MediaType,
   id: number,
-  region: string = DEFAULT_REGION
+  region: string = WATCH_REGION
 ): Promise<Recommendation | null> {
   try {
     const d = await tmdbFetch<TmdbTitleDetails>(`/${mediaType}/${id}`);

@@ -1,38 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRecommendationsWithProviders } from "@/lib/tmdb";
-import { titleRecommendations } from "@/lib/recommend";
+import { jsonError } from "@/lib/api";
+import { parseMedia } from "@/lib/media";
 import { attachRatings } from "@/lib/ratings";
-import type { MediaType } from "@/types/media";
+import { titleRecommendations } from "@/lib/recommend";
+import { getRecommendationsWithProviders } from "@/lib/tmdb";
 
 export const maxDuration = 30;
 
-function isMediaType(value: string | null): value is MediaType {
-  return value === "movie" || value === "tv";
-}
-
 export async function GET(request: NextRequest) {
-  const mediaType = request.nextUrl.searchParams.get("mediaType");
-  const id = request.nextUrl.searchParams.get("id");
-
-  if (!isMediaType(mediaType) || !id) {
-    return NextResponse.json(
-      { error: "mediaType must be 'movie' or 'tv', and id is required" },
-      { status: 400 }
-    );
-  }
+  const params = request.nextUrl.searchParams;
+  const media = parseMedia(params.get("mediaType"), params.get("id"));
+  if (!media) return jsonError("mediaType must be 'movie' or 'tv', and id is required", 400);
 
   try {
     try {
-      const refined = await titleRecommendations(mediaType, Number(id));
+      const refined = await titleRecommendations(media.mediaType, media.id);
       return NextResponse.json({ results: await attachRatings(refined) });
     } catch (error) {
       console.error("Refined recommendations failed, using TMDB fallback:", error);
     }
 
-    const recommendations = await getRecommendationsWithProviders(mediaType, Number(id));
-    return NextResponse.json({ results: await attachRatings(recommendations) });
+    const fallback = await getRecommendationsWithProviders(media.mediaType, media.id);
+    return NextResponse.json({ results: await attachRatings(fallback) });
   } catch (error) {
     console.error("TMDB recommendations failed:", error);
-    return NextResponse.json({ error: "Failed to fetch recommendations" }, { status: 502 });
+    return jsonError("Failed to fetch recommendations", 502);
   }
 }

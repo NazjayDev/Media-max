@@ -1,5 +1,5 @@
 import { cached } from "@/lib/cache";
-import { tmdbFetch } from "@/lib/tmdb";
+import { tmdbFetch, tmdbFetchMany } from "@/lib/tmdb";
 import type { MediaType, Ratings, Recommendation } from "@/types/media";
 
 const RATINGS_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -39,21 +39,21 @@ async function fetchOmdbRatings(mediaType: MediaType, id: number): Promise<Ratin
   });
 }
 
-/** TMDB's community score (always available) plus OMDb scores when configured. */
-export async function getRatings(mediaType: MediaType, id: number): Promise<Ratings> {
-  const [details, external] = await Promise.all([
-    tmdbFetch<{ vote_average?: number }>(`/${mediaType}/${id}`).catch(() => ({}) as { vote_average?: number }),
-    fetchOmdbRatings(mediaType, id).catch(() => ({}) as Ratings),
-  ]);
-  const average = details.vote_average;
-  return {
-    tmdb: average && average > 0 ? Math.round(average * 10) / 10 : undefined,
-    ...external,
-  };
-}
-
+/** Adds TMDB's community score (always available) plus OMDb scores when a key is configured. */
 export async function attachRatings<T extends Recommendation>(items: T[]): Promise<T[]> {
-  return Promise.all(
-    items.map(async (item) => ({ ...item, ratings: await getRatings(item.mediaType, item.id) }))
-  );
+  const [details, external] = await Promise.all([
+    tmdbFetchMany<{ vote_average?: number }>(items.map((i) => `/${i.mediaType}/${i.id}`)),
+    Promise.all(items.map((i) => fetchOmdbRatings(i.mediaType, i.id).catch(() => ({}) as Ratings))),
+  ]);
+
+  return items.map((item, i) => {
+    const average = details[i]?.vote_average;
+    return {
+      ...item,
+      ratings: {
+        tmdb: average && average > 0 ? Math.round(average * 10) / 10 : undefined,
+        ...external[i],
+      },
+    };
+  });
 }

@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getDb } from "@/lib/mongodb";
-import type { MediaType } from "@/types/media";
+import { ensureIndex, getDb } from "@/lib/mongodb";
 
 export type ReportReason = "spoiler" | "harassment" | "offtopic" | "spam";
 export const REPORT_REASONS: ReportReason[] = ["spoiler", "harassment", "offtopic", "spam"];
@@ -40,13 +39,11 @@ export const MAX_COMMENT_LENGTH = 1000;
 export const HIDE_AFTER_REPORTS = 3;
 export const SPOILER_AFTER_REPORTS = 2;
 
-export const mediaKeyOf = (mediaType: MediaType, id: number) => `${mediaType}:${id}`;
-
 export async function commentsCollection() {
   const db = await getDb();
   if (!db) return null;
   const collection = db.collection<CommentDoc>("comments");
-  await collection.createIndex({ mediaKey: 1, parentId: 1, createdAt: -1 }).catch(() => undefined);
+  await ensureIndex(collection, { mediaKey: 1, parentId: 1, createdAt: -1 });
   return collection;
 }
 

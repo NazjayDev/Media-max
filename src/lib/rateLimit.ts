@@ -1,13 +1,11 @@
 import type { NextRequest } from "next/server";
-import { getDb } from "@/lib/mongodb";
+import { ensureIndex, getDb } from "@/lib/mongodb";
 
 interface RateDoc {
   _id: string;
   count: number;
   expiresAt: Date;
 }
-
-let indexReady: Promise<unknown> | null = null;
 
 export function clientIp(request: NextRequest): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -27,9 +25,7 @@ export async function allowRequest(
   if (!db) return true;
 
   const collection = db.collection<RateDoc>("ratelimits");
-  indexReady ??= collection
-    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
-    .catch(() => undefined);
+  await ensureIndex(collection, { expiresAt: 1 }, { expireAfterSeconds: 0 });
 
   const window = Math.floor(Date.now() / (windowSeconds * 1000));
   try {

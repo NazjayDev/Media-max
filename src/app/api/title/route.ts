@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jsonError } from "@/lib/api";
+import { parseMedia } from "@/lib/media";
 import { attachRatings } from "@/lib/ratings";
 import { getTitleCard } from "@/lib/tmdb";
 
 export async function GET(request: NextRequest) {
-  const mediaType = request.nextUrl.searchParams.get("mediaType");
-  const id = Number(request.nextUrl.searchParams.get("id"));
-  if ((mediaType !== "movie" && mediaType !== "tv") || !Number.isInteger(id) || id <= 0) {
-    return NextResponse.json({ error: "Invalid title" }, { status: 400 });
-  }
+  const params = request.nextUrl.searchParams;
+  const media = parseMedia(params.get("mediaType"), params.get("id"));
+  if (!media) return jsonError("Invalid title", 400);
 
-  const card = await getTitleCard(mediaType, id);
-  if (!card) {
-    return NextResponse.json({ error: "Title not found" }, { status: 404 });
-  }
+  const card = await getTitleCard(media.mediaType, media.id);
+  if (!card) return jsonError("Title not found", 404);
 
   const [withRatings] = await attachRatings([card]);
   return NextResponse.json(withRatings, {

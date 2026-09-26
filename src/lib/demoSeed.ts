@@ -1,5 +1,7 @@
+import { WATCH_REGION } from "@/lib/config";
 import { getDb } from "@/lib/mongodb";
 import { getWatchProviders, TMDB_IMAGE_BASE_URL } from "@/lib/tmdb";
+import { watchlistCollection, type WatchlistDoc } from "@/lib/watchlist";
 import type { MediaType, Recommendation } from "@/types/media";
 
 interface CatalogRow {
@@ -30,7 +32,6 @@ function mulberry32(seed: number) {
 
 const has = (t: CatalogRow, ...genres: string[]) => genres.some((g) => t.genres.includes(g));
 
-const REGION = process.env.TMDB_WATCH_REGION || "US";
 const WATCHED_TARGET = 54;
 const DAY = 86_400_000;
 
@@ -106,7 +107,7 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
   for (let i = 0; i < everything.length; i += 8) {
     await Promise.all(
       everything.slice(i, i + 8).map(async (t) => {
-        providers.set(t._id, await getWatchProviders(t.mediaType, t.tmdbId, REGION).catch(() => []));
+        providers.set(t._id, await getWatchProviders(t.mediaType, t.tmdbId, WATCH_REGION).catch(() => []));
       })
     );
   }
@@ -121,8 +122,8 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
   });
 
   const now = Date.now();
-  const docs = [
-    ...watched.map((t) => {
+  const docs: WatchlistDoc[] = [
+    ...watched.map((t): WatchlistDoc => {
       const idx = timeline.indexOf(t);
       const watchedAt = new Date(now - (idx * 2.1 + rand() * 1.2 + 0.6) * DAY);
       return {
@@ -136,7 +137,7 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
         favorite: favoriteKeys.has(t._id),
       };
     }),
-    ...watching.map((t, i) => ({
+    ...watching.map((t, i): WatchlistDoc => ({
       userId,
       key: t._id,
       item: snapshot(t),
@@ -146,7 +147,7 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
       userRating: null,
       favorite: false,
     })),
-    ...want.map((t, i) => ({
+    ...want.map((t, i): WatchlistDoc => ({
       userId,
       key: t._id,
       item: snapshot(t),
@@ -158,8 +159,8 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
     })),
   ];
 
-  const collection = db.collection("watchlist");
-  await collection.createIndex({ userId: 1, key: 1 }, { unique: true }).catch(() => undefined);
+  const collection = await watchlistCollection();
+  if (!collection) throw new Error("Database unavailable");
   await collection.deleteMany({ userId });
   await collection.insertMany(docs);
 
