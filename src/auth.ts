@@ -12,6 +12,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Google],
   session: { strategy: "jwt" },
   callbacks: {
+    jwt({ token, account }) {
+      // Without a database adapter Auth.js mints a new random user id at every sign-in. Pin the
+      // stable Google account id instead so a person's data follows them across sign-ins and devices.
+      if (account?.providerAccountId) token.sub = account.providerAccountId;
+      return token;
+    },
     session({ session, token }) {
       if (token.sub) {
         session.user.id = token.sub;
