@@ -485,28 +485,23 @@ export default function Home() {
         ))}
       </section>
 
-      <Link
-        href="/roulette"
-        className="group mt-5 flex w-full max-w-3xl items-center gap-4 rounded-lg border border-accent-to bg-accent-to/10 p-4 transition hover:bg-accent-to/20"
-      >
-        <span
+      <Link href="/roulette" className="carpet mt-6">
+        {/* Brass posts at each end and a velvet rope across the top, like a premiere. */}
+        <span aria-hidden className="carpet-post carpet-post-left" />
+        <span aria-hidden className="carpet-post carpet-post-right" />
+        <svg
           aria-hidden
-          className="flex h-14 w-11 shrink-0 flex-col justify-between rounded-[4px] bg-[#060403] px-1 py-1 ring-1 ring-accent-to/60"
+          className="carpet-rope"
+          viewBox="0 0 100 14"
+          preserveAspectRatio="none"
+          fill="none"
         >
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={`block h-3 rounded-[2px] ${i === 1 ? "bg-accent-to" : "bg-white/25"}`}
-            />
-          ))}
-        </span>
-        <span className="min-w-0">
-          <span className="block font-[family-name:var(--font-display)] text-lg font-extrabold">
-            Can&apos;t decide? Play Media Roulette
-          </span>
-          <span className="mt-0.5 block text-sm text-muted">
-            Spin the reel and we&apos;ll pick your next watch: anything, or just movies, TV or
-            anime.
+          <path d="M0 2 Q50 15 100 2" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <span className="carpet-runner">
+          <span className="carpet-title">Can&apos;t decide? Play Media Roulette</span>
+          <span className="carpet-text">
+            Roll out the red carpet. Spin the reel and we&apos;ll pick your next watch.
           </span>
         </span>
       </Link>

@@ -535,3 +535,198 @@ a.reel-poster:focus-visible {
     animation: none;
   }
 }
+
+/* ---- Red carpet: the way into Media Roulette. Velvet runner, gold trim, brass posts and a rope. ---- */
+.carpet {
+  --velvet: #a8141f;
+  --velvet-dark: #6d0a12;
+  --gold: #e6c064;
+  --gold-dark: #8a6a1f;
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 48rem;
+  padding: 26px 46px 14px;
+  outline-offset: 4px;
+}
+.carpet-runner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 18px 20px 20px;
+  text-align: center;
+  color: #fff3d2;
+  border-block: 3px solid var(--gold);
+  border-radius: 3px;
+  /* Velvet: a deep red base, fine vertical pile, and darker edges like a lit runner. */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 120, 110, 0.32), transparent 65%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, transparent 2px 5px),
+    linear-gradient(
+      90deg,
+      var(--velvet-dark),
+      var(--velvet) 18%,
+      var(--velvet) 82%,
+      var(--velvet-dark)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 233, 170, 0.35),
+    inset 0 0 40px rgba(60, 0, 6, 0.55),
+    0 14px 30px rgba(0, 0, 0, 0.55);
+  transition: transform 0.2s ease;
+}
+.carpet:hover .carpet-runner,
+.carpet:focus-visible .carpet-runner {
+  transform: translateY(-2px);
+}
+.carpet-title {
+  font:
+    800 1.3rem/1.15 var(--font-display),
+    sans-serif;
+  letter-spacing: -0.01em;
+  color: #fff3d2;
+  text-shadow: 0 2px 0 rgba(60, 0, 6, 0.6);
+}
+.carpet-text {
+  font-size: 0.9rem;
+  line-height: 1.35rem;
+  color: rgba(255, 233, 190, 0.85);
+}
+/* Gold stars along the trim, and a paparazzi flash when you point at it. */
+.carpet-runner::before {
+  content: "\2605  \2605  \2605";
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+  opacity: 0.85;
+  white-space: pre;
+}
+.carpet-runner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--fx, 78%) 40%,
+    rgba(255, 255, 255, 0.95),
+    transparent 45%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+.carpet:hover .carpet-runner::after,
+.carpet:focus-visible .carpet-runner::after {
+  animation: carpet-flash 0.55s ease-out 1;
+}
+@keyframes carpet-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.carpet-post {
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  width: 12px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(90deg, var(--gold-dark), #f6e2a0 45%, var(--gold-dark));
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
+}
+.carpet-post::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #fff3c2, var(--gold) 55%, var(--gold-dark));
+}
+.carpet-post::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 26px;
+  height: 7px;
+  margin-left: -13px;
+  border-radius: 4px;
+  background: linear-gradient(var(--gold), var(--gold-dark));
+}
+.carpet-post-left {
+  left: 20px;
+}
+.carpet-post-right {
+  right: 20px;
+}
+.carpet-rope {
+  position: absolute;
+  top: 8px;
+  left: 26px;
+  right: 26px;
+  width: calc(100% - 52px);
+  height: 16px;
+  overflow: visible;
+  pointer-events: none;
+}
+.carpet-rope path {
+  stroke: #8f0f1b;
+  stroke-width: 6px;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+@media (max-width: 480px) {
+  .carpet {
+    padding-inline: 34px;
+  }
+  .carpet-post-left {
+    left: 12px;
+  }
+  .carpet-post-right {
+    right: 12px;
+  }
+  .carpet-title {
+    font-size: 1.1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carpet:hover .carpet-runner::after,
+  .carpet:focus-visible .carpet-runner::after {
+    animation: none;
+  }
+  .carpet:hover .carpet-runner,
+  .carpet:focus-visible .carpet-runner {
+    transform: none;
+  }
+}
+
+/* The SPIN button matches: red velvet with a gold rim. */
+.roulette-spin {
+  border-color: #e6c064;
+  background: radial-gradient(circle at 35% 30%, #e0454f, #a8141f 58%, #6d0a12);
+  color: #fff3d2;
+  text-shadow: 0 2px 0 rgba(60, 0, 6, 0.7);
+  box-shadow:
+    0 8px 0 #4a060c,
+    0 14px 24px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 233, 170, 0.35);
+}
+.roulette-spin:active:not(:disabled) {
+  box-shadow:
+    0 2px 0 #4a060c,
+    0 6px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 233, 170, 0.35);
+}

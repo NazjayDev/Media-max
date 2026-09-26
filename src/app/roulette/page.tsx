@@ -23,7 +23,7 @@ interface SpinResponse {
 }
 
 const chip = (active: boolean) =>
-  `inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-bold transition sm:px-5 disabled:cursor-not-allowed disabled:opacity-60 ${
+  `inline-flex min-h-10 items-center rounded-full border px-3 text-sm font-bold transition sm:px-5 disabled:cursor-not-allowed disabled:opacity-60 ${
     active
       ? "border-accent-to bg-accent-to text-[var(--on-accent)]"
       : "border-border bg-surface hover:border-accent-to hover:text-accent-from"
