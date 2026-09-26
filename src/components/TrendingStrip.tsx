@@ -54,6 +54,9 @@ export default function TrendingStrip({ onPickVibe }: TrendingStripProps) {
             Trending on Media Max
           </h2>
           <p className="text-sm text-muted">What people are searching and saving right now.</p>
+          {data.includesDemo && (
+            <p className="mt-1 text-xs text-muted">Includes sample activity added for the hackathon demo.</p>
+          )}
         </div>
         <Link href="/trending" className="text-sm font-medium text-accent-from underline-offset-2 hover:underline dark:text-violet-300">
           See all trends

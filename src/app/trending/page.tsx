@@ -19,6 +19,11 @@ export default function TrendingPage() {
         Live from the last 24 hours of searches and saves. Every event is stored anonymously in a
         Tiger Data (TimescaleDB) hypertable and rolled up hourly by continuous aggregates.
       </p>
+      {data?.includesDemo && (
+        <p className="mt-2 max-w-xl rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          This view includes sample activity added for the hackathon demo, mixed with any real activity.
+        </p>
+      )}
 
       {!data ? (
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">

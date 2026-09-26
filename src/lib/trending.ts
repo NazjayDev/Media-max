@@ -16,10 +16,12 @@ export interface TrendingData {
   queries: { query: string; count: number }[];
   /** Total events per hour for the last 24 hours, oldest first. */
   activity: { hour: string; events: number }[];
+  /** True when the window includes sample activity seeded for demos (source = 'demo'). */
+  includesDemo: boolean;
   generatedAt: string;
 }
 
-const EMPTY: TrendingData = { titles: [], queries: [], activity: [], generatedAt: "" };
+const EMPTY: TrendingData = { titles: [], queries: [], activity: [], includesDemo: false, generatedAt: "" };
 const HOURS = 24;
 
 // Recent activity counts more: weights decay with a 6-hour time constant, and a save is worth 3 searches.
@@ -53,6 +55,11 @@ const TOP_QUERIES_SQL = `
   ORDER BY count DESC, max(bucket) DESC
   LIMIT 8`;
 
+const DEMO_SQL = `
+  SELECT count(*)::int AS n
+  FROM events
+  WHERE source = 'demo' AND time > now() - INTERVAL '24 hours'`;
+
 const ACTIVITY_SQL = `
   SELECT time_bucket_gapfill(INTERVAL '1 hour', bucket,
            now() - INTERVAL '24 hours', now()) AS hour,
@@ -66,12 +73,13 @@ async function compute(): Promise<TrendingData> {
   const pool = getTiger();
   if (!pool) return EMPTY;
 
-  const [top, queries, activity] = await Promise.all([
+  const [top, queries, activity, demo] = await Promise.all([
     pool.query<{ media_type: MediaType; tmdb_id: number; searches: number; saves: number }>(
       TOP_TITLES_SQL
     ),
     pool.query<{ query: string; count: number }>(TOP_QUERIES_SQL),
     pool.query<{ hour: Date; events: number }>(ACTIVITY_SQL),
+    pool.query<{ n: number }>(DEMO_SQL),
   ]);
 
   const ids = top.rows.map((r) => r.tmdb_id);
@@ -100,6 +108,7 @@ async function compute(): Promise<TrendingData> {
       hour: new Date(r.hour).toISOString(),
       events: r.events,
     })),
+    includesDemo: (demo.rows[0]?.n ?? 0) > 0,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -107,7 +116,7 @@ async function compute(): Promise<TrendingData> {
 /** Trending snapshot from Tiger Data, cached briefly so page views don't hammer the database. */
 export async function getTrending(): Promise<TrendingData> {
   try {
-    return await cached("trending:v1", 60, compute);
+    return await cached("trending:v2", 60, compute);
   } catch (error) {
     console.error("Trending query failed:", error instanceof Error ? error.message : error);
     return EMPTY;
