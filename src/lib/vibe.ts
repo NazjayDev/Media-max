@@ -1,4 +1,5 @@
 import { ApiError, GoogleGenAI, Type } from "@google/genai";
+import { cached } from "@/lib/cache";
 import type { MediaType } from "@/types/media";
 
 export interface VibeSuggestion {
@@ -49,7 +50,14 @@ function isBusy(error: unknown): boolean {
   return error instanceof ApiError && (error.status === 503 || error.status === 429);
 }
 
+const VIBE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 export async function suggestByVibe(vibe: string): Promise<VibeSuggestion[]> {
+  const normalized = vibe.toLowerCase().replace(/\s+/g, " ").trim();
+  return cached(`vibe:${normalized}`, VIBE_CACHE_TTL_SECONDS, () => generateSuggestions(vibe));
+}
+
+async function generateSuggestions(vibe: string): Promise<VibeSuggestion[]> {
   const ai = new GoogleGenAI({});
   let lastError: unknown;
 

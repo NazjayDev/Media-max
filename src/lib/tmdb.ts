@@ -1,3 +1,4 @@
+import { cached } from "@/lib/cache";
 import type { MediaType, Recommendation, SearchResult, StreamingProvider } from "@/types/media";
 
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
@@ -16,6 +17,8 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
+const CACHE_TTL_SECONDS = 12 * 60 * 60;
+
 async function tmdbFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(`${TMDB_API_BASE_URL}${path}`);
   if (params) {
@@ -24,13 +27,15 @@ async function tmdbFetch<T>(path: string, params?: Record<string, string>): Prom
     }
   }
 
-  const res = await fetch(url, { headers: getAuthHeaders(), cache: "no-store" });
+  return cached(`tmdb:${url.pathname}${url.search}`, CACHE_TTL_SECONDS, async () => {
+    const res = await fetch(url, { headers: getAuthHeaders(), cache: "no-store" });
 
-  if (!res.ok) {
-    throw new Error(`TMDB request failed (${res.status}) for ${path}`);
-  }
+    if (!res.ok) {
+      throw new Error(`TMDB request failed (${res.status}) for ${path}`);
+    }
 
-  return res.json() as Promise<T>;
+    return res.json() as Promise<T>;
+  });
 }
 
 interface TmdbMultiSearchResult {
