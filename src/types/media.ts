@@ -20,4 +20,5 @@ export interface Recommendation {
   posterPath: string | null;
   synopsis: string;
   streamingProviders: StreamingProvider[];
+  why?: string;
 }

@@ -30,7 +30,16 @@ export default function RecommendationCard({ item, index }: RecommendationCardPr
 
       <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
         <h3 className="text-sm font-semibold leading-snug sm:text-base">{item.title}</h3>
-        <p className="line-clamp-3 text-xs leading-5 text-muted sm:text-sm sm:leading-6">
+        {item.why && (
+          <p className="text-xs font-medium leading-5 text-accent-from sm:text-sm dark:text-violet-300">
+            {item.why}
+          </p>
+        )}
+        <p
+          className={`text-xs leading-5 text-muted sm:text-sm sm:leading-6 ${
+            item.why ? "line-clamp-2" : "line-clamp-3"
+          }`}
+        >
           {item.synopsis || "No synopsis available."}
         </p>
 
