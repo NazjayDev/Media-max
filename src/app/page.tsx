@@ -5,6 +5,7 @@ import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import NarrateButton from "@/components/NarrateButton";
+import { useVoiceReplies } from "@/lib/voiceSetting";
 import type { Recommendation, SearchResult } from "@/types/media";
 
 type Status = "idle" | "loading" | "error" | "success";
@@ -17,6 +18,7 @@ export default function Home() {
   const [mode, setMode] = useState<SearchMode>("title");
   const [vibeQuery, setVibeQuery] = useState("");
   const [narrateToken, setNarrateToken] = useState(0);
+  const voiceReplies = useVoiceReplies();
 
   const narrationScript = useMemo(() => {
     const intro = matchedTitle
@@ -63,7 +65,7 @@ export default function Home() {
 
       setRecommendations(data.results);
       setStatus("success");
-      if (viaVoice) setNarrateToken((t) => t + 1);
+      if (viaVoice && voiceReplies) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
@@ -125,7 +127,7 @@ export default function Home() {
 
       setRecommendations(recsData.results);
       setStatus("success");
-      if (viaVoice) setNarrateToken((t) => t + 1);
+      if (viaVoice && voiceReplies) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
@@ -184,9 +186,11 @@ export default function Home() {
                 {matchedTitle ? matchedTitle.title : `"${vibeQuery}"`}
               </span>
             </p>
-            <div className="mb-6 flex justify-center">
-              <NarrateButton script={narrationScript} autoPlayToken={narrateToken} />
-            </div>
+            {voiceReplies && (
+              <div className="mb-6 flex justify-center">
+                <NarrateButton script={narrationScript} autoPlayToken={narrateToken} />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
               {recommendations.map((item, i) => (
                 <RecommendationCard key={item.id} item={item} index={i} />
