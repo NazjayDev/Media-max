@@ -4,7 +4,11 @@ import pg from "pg";
 
 if (!process.env.TIGER_DATABASE_URL) throw new Error("TIGER_DATABASE_URL is not set");
 
-const client = new pg.Client({ connectionString: process.env.TIGER_DATABASE_URL });
+// Tiger Cloud uses its own CA; libpq `sslmode=require` semantics (encrypted, CA not verified) match Tiger's docs.
+const url = new URL(process.env.TIGER_DATABASE_URL);
+url.searchParams.set("sslmode", "require");
+url.searchParams.set("uselibpqcompat", "true");
+const client = new pg.Client({ connectionString: url.toString() });
 await client.connect();
 
 async function step(label, sql, { optional = false } = {}) {
