@@ -17,6 +17,8 @@ interface WatchlistDoc {
 }
 
 const ROWS = 3;
+const CANDIDATES = 6; // look a little further back if a recent title has too few fresh matches
+const MIN_RESULTS = 4;
 const PER_ROW = 8;
 
 export async function GET() {
@@ -39,7 +41,7 @@ export async function GET() {
       (a, b) =>
         (b.statusUpdatedAt ?? b.addedAt).getTime() - (a.statusUpdatedAt ?? a.addedAt).getTime()
     )
-    .slice(0, ROWS);
+    .slice(0, CANDIDATES);
 
   const rows = await Promise.all(
     lastWatched.map(async (doc) => {
@@ -60,5 +62,5 @@ export async function GET() {
     })
   );
 
-  return NextResponse.json({ rows: rows.filter((r) => r.results.length > 0) });
+  return NextResponse.json({ rows: rows.filter((r) => r.results.length >= MIN_RESULTS).slice(0, ROWS) });
 }

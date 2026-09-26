@@ -1,8 +1,19 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { SessionProvider, signIn, useSession } from "next-auth/react";
-import type { Recommendation, WatchStatus, WatchlistEntry } from "@/types/media";
+import type {
+  Recommendation,
+  WatchStatus,
+  WatchlistEntry,
+} from "@/types/media";
 
 interface WatchlistContextValue {
   items: WatchlistEntry[];
@@ -13,6 +24,7 @@ interface WatchlistContextValue {
   setStatus: (item: Recommendation, status: WatchStatus) => Promise<void>;
   setRating: (item: Recommendation, rating: number | null) => Promise<void>;
   setFavorite: (item: Recommendation, favorite: boolean) => Promise<void>;
+  reload: () => void;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue | null>(null);
@@ -33,15 +45,20 @@ const freshEntry = (item: Recommendation): WatchlistEntry => ({
   statusUpdatedAt: new Date().toISOString(),
 });
 
-const keyOf = (item: Pick<Recommendation, "mediaType" | "id">) => `${item.mediaType}:${item.id}`;
+const keyOf = (item: Pick<Recommendation, "mediaType" | "id">) =>
+  `${item.mediaType}:${item.id}`;
 
 function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
   const signedIn = status === "authenticated";
   const [fetchedItems, setItems] = useState<WatchlistEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const loading = signedIn && !loaded;
-  const items = useMemo(() => (signedIn ? fetchedItems : []), [signedIn, fetchedItems]);
+  const items = useMemo(
+    () => (signedIn ? fetchedItems : []),
+    [signedIn, fetchedItems],
+  );
 
   useEffect(() => {
     if (!signedIn) {
@@ -60,11 +77,14 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [signedIn]);
+  }, [signedIn, reloadNonce]);
 
   const saved = useMemo(() => new Set(items.map(keyOf)), [items]);
 
-  const isSaved = useCallback((item: Recommendation) => saved.has(keyOf(item)), [saved]);
+  const isSaved = useCallback(
+    (item: Recommendation) => saved.has(keyOf(item)),
+    [saved],
+  );
 
   const toggle = useCallback(
     async (item: Recommendation) => {
@@ -78,14 +98,17 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
       setItems((prev) =>
         alreadySaved
           ? prev.filter((i) => keyOf(i) !== keyOf(item))
-          : [freshEntry(item), ...prev]
+          : [freshEntry(item), ...prev],
       );
 
       try {
         const res = alreadySaved
-          ? await fetch(`/api/watchlist?mediaType=${item.mediaType}&id=${item.id}`, {
-              method: "DELETE",
-            })
+          ? await fetch(
+              `/api/watchlist?mediaType=${item.mediaType}&id=${item.id}`,
+              {
+                method: "DELETE",
+              },
+            )
           : await fetch("/api/watchlist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -96,17 +119,21 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
         setItems((prev) =>
           alreadySaved
             ? [freshEntry(item), ...prev]
-            : prev.filter((i) => keyOf(i) !== keyOf(item))
+            : prev.filter((i) => keyOf(i) !== keyOf(item)),
         );
       }
     },
-    [signedIn, saved]
+    [signedIn, saved],
   );
 
   const patch = useCallback(
     async (
       item: Recommendation,
-      change: { status?: WatchStatus; userRating?: number | null; favorite?: boolean }
+      change: {
+        status?: WatchStatus;
+        userRating?: number | null;
+        favorite?: boolean;
+      },
     ) => {
       const before = items;
       setItems((prev) =>
@@ -115,45 +142,78 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...i,
                 ...change,
-                ...(change.status ? { statusUpdatedAt: new Date().toISOString() } : {}),
+                ...(change.status
+                  ? { statusUpdatedAt: new Date().toISOString() }
+                  : {}),
               }
-            : i
-        )
+            : i,
+        ),
       );
       try {
         const res = await fetch("/api/watchlist", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mediaType: item.mediaType, id: item.id, ...change }),
+          body: JSON.stringify({
+            mediaType: item.mediaType,
+            id: item.id,
+            ...change,
+          }),
         });
         if (!res.ok) throw new Error("request failed");
       } catch {
         setItems(before);
       }
     },
-    [items]
+    [items],
   );
 
   const setStatus = useCallback(
     (item: Recommendation, status: WatchStatus) => patch(item, { status }),
-    [patch]
+    [patch],
   );
   const setRating = useCallback(
-    (item: Recommendation, userRating: number | null) => patch(item, { userRating }),
-    [patch]
+    (item: Recommendation, userRating: number | null) =>
+      patch(item, { userRating }),
+    [patch],
   );
 
   const setFavorite = useCallback(
     (item: Recommendation, favorite: boolean) => patch(item, { favorite }),
-    [patch]
+    [patch],
   );
+
+  const reload = useCallback(() => setReloadNonce((n) => n + 1), []);
 
   const value = useMemo(
-    () => ({ items, loading, signedIn, isSaved, toggle, setStatus, setRating, setFavorite }),
-    [items, loading, signedIn, isSaved, toggle, setStatus, setRating, setFavorite]
+    () => ({
+      items,
+      loading,
+      signedIn,
+      isSaved,
+      toggle,
+      setStatus,
+      setRating,
+      setFavorite,
+      reload,
+    }),
+    [
+      items,
+      loading,
+      signedIn,
+      isSaved,
+      toggle,
+      setStatus,
+      setRating,
+      setFavorite,
+      reload,
+    ],
   );
 
-  return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;
+  return (
+    <WatchlistContext.Provider value={value}>
+      {children}
+    </WatchlistContext.Provider>
+  );
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {

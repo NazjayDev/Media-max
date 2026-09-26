@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
@@ -222,8 +222,12 @@ function ContinueWatching({ entry }: { entry: WatchlistEntry }) {
 }
 
 export default function DashboardPage() {
-  const { status } = useSession();
-  const { items, loading } = useWatchlist();
+  const { data: session, status } = useSession();
+  const { items, loading, reload } = useWatchlist();
+  const isDemo = !!session?.user?.demo;
+  const [seeding, setSeeding] = useState(false);
+  const [seedError, setSeedError] = useState("");
+  const autoSeeded = useRef(false);
 
   const [because, setBecause] = useState<BecauseRow[] | null>(null);
   const [becauseFailed, setBecauseFailed] = useState(false);
@@ -233,10 +237,49 @@ export default function DashboardPage() {
   const [picksBasedOn, setPicksBasedOn] = useState(0);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
+  async function runSeed() {
+    setSeeding(true);
+    setSeedError("");
+    try {
+      const res = await fetch("/api/demo/seed", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSeedError(data.error ?? "Couldn't prepare the demo account.");
+        return;
+      }
+      setBecause(null);
+      setBecauseFailed(false);
+      setPicks(null);
+      setPicksFailed(false);
+      setRefreshNonce((n) => n + 1);
+      reload();
+    } catch {
+      setSeedError("Network error. Try again.");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   const hasItems = status === "authenticated" && !loading && items.length > 0;
   const hasWatched = hasItems && items.some((i) => i.status === "watched");
   const picksLoading = hasItems && picks === null && !picksFailed;
   const becauseLoading = hasWatched && because === null && !becauseFailed;
+
+  // A brand-new demo account fills itself in the first time the dashboard opens.
+  useEffect(() => {
+    if (
+      isDemo &&
+      status === "authenticated" &&
+      !loading &&
+      items.length === 0 &&
+      !autoSeeded.current
+    ) {
+      autoSeeded.current = true;
+      void runSeed();
+    }
+    // runSeed only uses stable setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, status, loading, items.length]);
 
   useEffect(() => {
     if (!hasWatched) return;
@@ -336,6 +379,24 @@ export default function DashboardPage() {
               </button>
             </Panel>
           </div>
+        ) : items.length === 0 && (seeding || isDemo) ? (
+          <div className="mt-8">
+            <Panel>
+              <p>
+                {seedError ||
+                  "Setting up your demo dashboard with sample viewing history..."}
+              </p>
+              {seedError && (
+                <button
+                  type="button"
+                  onClick={runSeed}
+                  className="mt-4 rounded-full border border-border px-6 py-2.5 font-medium text-foreground hover:border-accent-from"
+                >
+                  Try again
+                </button>
+              )}
+            </Panel>
+          </div>
         ) : items.length === 0 ? (
           <div className="mt-8">
             <Panel>
@@ -353,6 +414,30 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            {isDemo && (
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                <span>
+                  Demo account: preloaded with sample viewing history for the
+                  presentation.
+                </span>
+                <button
+                  type="button"
+                  disabled={seeding}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Reset this demo account to its original sample data?",
+                      )
+                    )
+                      void runSeed();
+                  }}
+                  className="rounded-full border border-amber-500/60 px-3 py-1 text-xs font-semibold hover:bg-amber-500/20 disabled:opacity-50"
+                >
+                  {seeding ? "Resetting..." : "Reset demo data"}
+                </button>
+              </div>
+            )}
+
             <StatsStrip items={items} />
 
             {sections.watching[0] && (
