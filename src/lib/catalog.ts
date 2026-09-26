@@ -22,12 +22,20 @@ export const catalogKey = (mediaType: MediaType, id: number) => `${mediaType}:${
 /** Nearest catalog titles to a query vector. Returns [] if the catalog isn't available. */
 export async function nearestTitles(
   vector: number[],
-  options: { limit?: number; excludeKey?: string; excludeKeys?: string[] } = {},
+  options: {
+    limit?: number;
+    excludeKey?: string;
+    excludeKeys?: string[];
+    /** Restrict matches to anime. */
+    anime?: boolean;
+  } = {},
 ): Promise<CatalogTitle[]> {
   const db = await getDb();
   if (!db) return [];
 
   const limit = options.limit ?? 40;
+  // Excluded titles are dropped after the search, so ask for that many extra to still return `limit`.
+  const fetchLimit = limit + (options.excludeKeys?.length ?? 0) + 1;
   try {
     const docs = await db
       .collection<CatalogTitle>("titles")
@@ -37,8 +45,9 @@ export async function nearestTitles(
             index: VECTOR_INDEX,
             path: "embedding",
             queryVector: vector,
-            numCandidates: Math.max(150, limit * 5),
-            limit: limit + (options.excludeKeys?.length ?? 0) + 1,
+            numCandidates: Math.max(150, fetchLimit * 4),
+            limit: fetchLimit,
+            ...(options.anime ? { filter: { anime: { $eq: true } } } : {}),
           },
         },
         { $addFields: { score: { $meta: "vectorSearchScore" } } },

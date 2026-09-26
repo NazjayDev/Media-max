@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
@@ -10,6 +10,7 @@ import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import NarrateButton from "@/components/NarrateButton";
 import TrendingStrip from "@/components/TrendingStrip";
+import { useSeen } from "@/lib/useSeen";
 import { useVoiceReplies } from "@/lib/voiceSetting";
 import type { Recommendation, SearchResult, SearchSuggestion } from "@/types/media";
 
@@ -26,6 +27,24 @@ export default function Home() {
   const [reelKind, setReelKind] = useState<ReelKind>(null);
   const { status: authStatus } = useSession();
   const voiceReplies = useVoiceReplies();
+  const { seen, markSeen } = useSeen();
+  const [moreBusy, setMoreBusy] = useState(false);
+  const [noMore, setNoMore] = useState(false);
+  const [moreError, setMoreError] = useState("");
+  const [undo, setUndo] = useState<{ title: string; run: () => void } | null>(null);
+
+  // Titles the person has already watched are left out of what they see.
+  const visible = useMemo(
+    () => recommendations.filter((r) => !seen.has(`${r.mediaType}:${r.id}`)),
+    [recommendations, seen],
+  );
+
+  // The "marked as watched" bar goes away by itself.
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), 8000);
+    return () => clearTimeout(timer);
+  }, [undo]);
 
   const narrationScript = useMemo(() => {
     const intro = matchedTitle
@@ -33,13 +52,13 @@ export default function Home() {
       : `Here are my picks for the vibe: ${vibeQuery}.`;
     const ordinals = ["One", "Two", "Three"];
     let script = intro;
-    recommendations.slice(0, 3).forEach((rec, i) => {
+    visible.slice(0, 3).forEach((rec, i) => {
       const reason = (rec.why || rec.blurb || "").replace(/\s+/g, " ").trim();
       const line = ` ${ordinals[i]}: ${rec.title}. ${reason.slice(0, 120)}`;
       if (script.length + line.length <= 650) script += line;
     });
     return script;
-  }, [matchedTitle, vibeQuery, recommendations]);
+  }, [matchedTitle, vibeQuery, visible]);
 
   async function handleVibeSearch(vibe: string, viaVoice = false) {
     setStatus("loading");
@@ -47,6 +66,8 @@ export default function Home() {
     setRecommendations([]);
     setMatchedTitle(null);
     setVibeQuery(vibe);
+    setNoMore(false);
+    setMoreError("");
 
     try {
       const res = await fetch(`/api/vibe?vibe=${encodeURIComponent(vibe)}`);
@@ -106,6 +127,8 @@ export default function Home() {
     setErrorMessage("");
     setRecommendations([]);
     setMatchedTitle(null);
+    setNoMore(false);
+    setMoreError("");
 
     try {
       const searchRes = await fetch(`/api/search?${lookup}`);
@@ -147,6 +170,43 @@ export default function Home() {
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
+    }
+  }
+
+  async function handleSeen(item: Recommendation) {
+    const run = await markSeen(item);
+    setUndo({ title: item.title, run });
+  }
+
+  async function loadMore() {
+    setMoreBusy(true);
+    setMoreError("");
+    try {
+      // Everything shown so far, plus everything already watched, so nothing comes back twice.
+      const exclude = [
+        ...new Set([...recommendations.map((r) => `${r.mediaType}:${r.id}`), ...seen]),
+      ];
+      const res = await fetch("/api/more", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          matchedTitle
+            ? { mediaType: matchedTitle.mediaType, id: matchedTitle.id, exclude }
+            : { vibe: vibeQuery, exclude },
+        ),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't find more right now.");
+      const known = new Set(exclude);
+      const fresh = ((data.results ?? []) as Recommendation[]).filter(
+        (r) => !known.has(`${r.mediaType}:${r.id}`),
+      );
+      if (fresh.length === 0) setNoMore(true);
+      else setRecommendations((prev) => [...prev, ...fresh]);
+    } catch (error) {
+      setMoreError(error instanceof Error ? error.message : "Couldn't find more right now.");
+    } finally {
+      setMoreBusy(false);
     }
   }
 
@@ -309,9 +369,42 @@ export default function Home() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
-              {recommendations.map((item, i) => (
-                <RecommendationCard key={item.id} item={item} index={i} />
+              {visible.map((item, i) => (
+                <RecommendationCard
+                  key={`${item.mediaType}:${item.id}`}
+                  item={item}
+                  index={i}
+                  onSeen={handleSeen}
+                />
               ))}
+              {moreBusy &&
+                Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={`more-${i}`} />)}
+            </div>
+
+            <div className="mt-8 flex flex-col items-center gap-3 text-center">
+              {visible.length === 0 && !moreBusy && (
+                <p className="text-sm text-muted">You&apos;ve seen everything on this list.</p>
+              )}
+              {noMore ? (
+                <p className="max-w-md text-sm text-muted">
+                  That&apos;s everything we found for this one. Try another title, or describe the
+                  vibe you&apos;re after.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={moreBusy}
+                  className="min-h-11 rounded-full border border-accent-to px-7 text-sm font-bold text-accent-from transition hover:bg-accent-to/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {moreBusy ? "Finding more..." : "Show more suggestions"}
+                </button>
+              )}
+              {moreError && (
+                <p role="alert" className="text-sm text-red-400">
+                  {moreError}
+                </p>
+              )}
             </div>
           </>
         )}
@@ -332,6 +425,27 @@ export default function Home() {
             className="rounded-full border border-accent-to px-8 py-3 text-base font-bold text-accent-from transition hover:bg-accent-to/10"
           >
             Login
+          </button>
+        </div>
+      )}
+
+      {undo && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3 text-sm shadow-xl shadow-black/50"
+        >
+          <span className="min-w-0">
+            Marked <strong className="break-words">{undo.title}</strong> as watched.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              undo.run();
+              setUndo(null);
+            }}
+            className="shrink-0 font-bold text-accent-from hover:underline"
+          >
+            Undo
           </button>
         </div>
       )}

@@ -105,6 +105,7 @@ export async function vibeRecommendations(vibe: string): Promise<Recommendation[
 }
 
 interface TmdbDetails {
+  original_language?: string;
   title?: string;
   name?: string;
   overview: string;
@@ -219,6 +220,101 @@ Recommend titles that fit their overall taste, weighing what these have in commo
         error instanceof Error ? error.message.slice(0, 120) : error,
       );
       throw new DegradedResults(await hydrateUnrefined(candidates, 8));
+    }
+  }).catch((error) => {
+    if (error instanceof DegradedResults) return error.results;
+    throw error;
+  });
+}
+
+const SEEN_NOTE =
+  "They have already seen the obvious matches, so favor good titles that are less famous or from a different era, but still true to what they wanted.";
+
+/**
+ * A second (or third) batch of suggestions that skips everything in `exclude`, which is what the
+ * person has already been shown or has watched. For anime it stays within anime.
+ */
+export async function moreTitleRecommendations(
+  mediaType: MediaType,
+  id: number,
+  exclude: string[],
+): Promise<Recommendation[]> {
+  const seedKey = catalogKey(mediaType, id);
+  const skip = [...new Set([...exclude, seedKey])];
+  const cacheKey = `more1:${createHash("sha1")
+    .update(`${seedKey}|${[...skip].sort().join(",")}`)
+    .digest("hex")}`;
+
+  return cached(cacheKey, DAY_SECONDS, async () => {
+    const details = await tmdbFetch<TmdbDetails>(`/${mediaType}/${id}`);
+    const seedTitle = details.title ?? details.name ?? "this title";
+    const seedYear = (details.release_date ?? details.first_air_date ?? "").slice(0, 4);
+    const genres = details.genres.map((g) => g.name);
+    const catalogSeed = await getCatalogEntry(seedKey);
+    const vector =
+      catalogSeed?.embedding ??
+      (await embedQuery(
+        `${seedTitle} (${seedYear}). Genres: ${genres.join(", ")}. ${details.overview}`,
+      ));
+    const anime =
+      catalogSeed?.anime ?? (genres.includes("Animation") && details.original_language === "ja");
+
+    const nearest = await nearestTitles(vector, { limit: 40, excludeKeys: skip, anime });
+    if (nearest.length === 0) return [];
+
+    const candidates = nearest.map(fromCatalog);
+    try {
+      const refined = await refineCandidates(
+        `The user loved: ${seedTitle} (${seedYear}), ${mediaType === "tv" ? "TV" : "Movie"}. Genres: ${genres.join(", ")}. ${details.overview.slice(0, 300)}
+${SEEN_NOTE}`,
+        candidates.slice(0, 30),
+        { max: 10, min: 4 },
+      );
+      return await hydrate(candidates, refined);
+    } catch (error) {
+      console.error(
+        "More-suggestions refinement unavailable:",
+        error instanceof Error ? error.message.slice(0, 120) : error,
+      );
+      throw new DegradedResults(await hydrateUnrefined(candidates, 10));
+    }
+  }).catch((error) => {
+    if (error instanceof DegradedResults) return error.results;
+    throw error;
+  });
+}
+
+/** More matches for a described vibe, skipping what has already been shown or watched. */
+export async function moreVibeRecommendations(
+  vibe: string,
+  exclude: string[],
+): Promise<Recommendation[]> {
+  const normalized = vibe.toLowerCase().replace(/\s+/g, " ").trim();
+  const cacheKey = `morevibe1:${createHash("sha1")
+    .update(`${normalized}|${[...exclude].sort().join(",")}`)
+    .digest("hex")}`;
+
+  return cached(cacheKey, DAY_SECONDS, async () => {
+    const nearest = await nearestTitles(await embedQuery(vibe), {
+      limit: 40,
+      excludeKeys: exclude,
+    });
+    if (nearest.length === 0) return [];
+
+    const candidates = nearest.map(fromCatalog);
+    try {
+      const refined = await refineCandidates(
+        `The user wants: "${vibe}"\n${SEEN_NOTE}`,
+        candidates.slice(0, 30),
+        { max: 10, min: 4 },
+      );
+      return await hydrate(candidates, refined);
+    } catch (error) {
+      console.error(
+        "More-vibe refinement unavailable:",
+        error instanceof Error ? error.message.slice(0, 120) : error,
+      );
+      throw new DegradedResults(await hydrateUnrefined(candidates, 10));
     }
   }).catch((error) => {
     if (error instanceof DegradedResults) return error.results;
