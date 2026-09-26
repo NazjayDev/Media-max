@@ -18,12 +18,12 @@ export function TrendingFooter({ title }: { title: TrendingTitle }) {
   );
 }
 
-export function useTrending(): TrendingData | null {
+export function useTrending(refreshKey = 0): TrendingData | null {
   const [data, setData] = useState<TrendingData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/trending")
+    fetch("/api/trending", refreshKey > 0 ? { cache: "no-store" } : undefined)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!cancelled && json) setData(json);
@@ -32,7 +32,7 @@ export function useTrending(): TrendingData | null {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   return data;
 }

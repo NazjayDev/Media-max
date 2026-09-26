@@ -2,6 +2,7 @@ import { cached } from "@/lib/cache";
 import { attachRatings } from "@/lib/ratings";
 import { getTiger } from "@/lib/tiger";
 import { getTitleCard } from "@/lib/tmdb";
+import { DEMO_MIN_EVENTS, seedDemoActivity } from "@/lib/demoActivity";
 import type { MediaType, Recommendation } from "@/types/media";
 
 export interface TrendingTitle extends Recommendation {
@@ -30,7 +31,7 @@ const TOP_TITLES_SQL = `
          sum(searches)::int AS searches, sum(saves)::int AS saves,
          sum((searches + 3 * saves) * exp(-extract(epoch FROM (now() - bucket)) / 21600.0)) AS score
   FROM title_activity_hourly
-  WHERE bucket > now() - INTERVAL '24 hours'
+  WHERE bucket > now() - INTERVAL '24 hours' AND (source <> 'demo' OR $1::boolean)
   GROUP BY media_type, tmdb_id
   ORDER BY score DESC
   LIMIT 8`;
@@ -43,14 +44,15 @@ const SERIES_SQL = `
          coalesce(sum(searches + saves), 0)::int AS n
   FROM title_activity_hourly
   WHERE bucket >= now() - INTERVAL '24 hours' AND bucket <= now()
-    AND tmdb_id = ANY($1::int[])
+    AND (source <> 'demo' OR $1::boolean)
+    AND tmdb_id = ANY($2::int[])
   GROUP BY media_type, tmdb_id, hour
   ORDER BY media_type, tmdb_id, hour`;
 
 const TOP_QUERIES_SQL = `
   SELECT query, sum(searches)::int AS count
   FROM query_activity_hourly
-  WHERE bucket > now() - INTERVAL '24 hours'
+  WHERE bucket > now() - INTERVAL '24 hours' AND (source <> 'demo' OR $1::boolean)
   GROUP BY query
   ORDER BY count DESC, max(bucket) DESC
   LIMIT 8`;
@@ -66,25 +68,33 @@ const ACTIVITY_SQL = `
          coalesce(sum(events), 0)::int AS events
   FROM total_activity_hourly
   WHERE bucket >= now() - INTERVAL '24 hours' AND bucket <= now()
+    AND (source <> 'demo' OR $1::boolean)
   GROUP BY hour
   ORDER BY hour`;
 
-async function compute(): Promise<TrendingData> {
+async function compute(includeDemo: boolean): Promise<TrendingData> {
   const pool = getTiger();
   if (!pool) return EMPTY;
 
+  // The showcase is for demo accounts only. If its sample activity has aged out, regenerate it first.
+  if (includeDemo) {
+    const { rows } = await pool.query<{ n: number }>(DEMO_SQL);
+    if ((rows[0]?.n ?? 0) < DEMO_MIN_EVENTS) await seedDemoActivity();
+  }
+
   const [top, queries, activity, demo] = await Promise.all([
     pool.query<{ media_type: MediaType; tmdb_id: number; searches: number; saves: number }>(
-      TOP_TITLES_SQL
+      TOP_TITLES_SQL,
+      [includeDemo]
     ),
-    pool.query<{ query: string; count: number }>(TOP_QUERIES_SQL),
-    pool.query<{ hour: Date; events: number }>(ACTIVITY_SQL),
+    pool.query<{ query: string; count: number }>(TOP_QUERIES_SQL, [includeDemo]),
+    pool.query<{ hour: Date; events: number }>(ACTIVITY_SQL, [includeDemo]),
     pool.query<{ n: number }>(DEMO_SQL),
   ]);
 
   const ids = top.rows.map((r) => r.tmdb_id);
   const seriesRows = ids.length
-    ? (await pool.query<{ media_type: MediaType; tmdb_id: number; n: number }>(SERIES_SQL, [ids])).rows
+    ? (await pool.query<{ media_type: MediaType; tmdb_id: number; n: number }>(SERIES_SQL, [includeDemo, ids])).rows
     : [];
 
   const seriesByKey = new Map<string, number[]>();
@@ -108,15 +118,18 @@ async function compute(): Promise<TrendingData> {
       hour: new Date(r.hour).toISOString(),
       events: r.events,
     })),
-    includesDemo: (demo.rows[0]?.n ?? 0) > 0,
+    includesDemo: includeDemo && (demo.rows[0]?.n ?? 0) > 0,
     generatedAt: new Date().toISOString(),
   };
 }
 
-/** Trending snapshot from Tiger Data, cached briefly so page views don't hammer the database. */
-export async function getTrending(): Promise<TrendingData> {
+/**
+ * Trending snapshot from Tiger Data, cached briefly so page views don't hammer the database.
+ * Demo accounts get the showcase view (real + sample activity); everyone else sees real activity only.
+ */
+export async function getTrending(includeDemo = false): Promise<TrendingData> {
   try {
-    return await cached("trending:v2", 60, compute);
+    return await cached(`trending:v3:${includeDemo ? "demo" : "public"}`, 60, () => compute(includeDemo));
   } catch (error) {
     console.error("Trending query failed:", error instanceof Error ? error.message : error);
     return EMPTY;

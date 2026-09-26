@@ -55,6 +55,7 @@ await step(
   `CREATE MATERIALIZED VIEW IF NOT EXISTS title_activity_hourly
    WITH (timescaledb.continuous) AS
    SELECT time_bucket(INTERVAL '1 hour', time) AS bucket,
+          source,
           media_type,
           tmdb_id,
           max(title)                                   AS title,
@@ -62,7 +63,7 @@ await step(
           count(*) FILTER (WHERE kind = 'save')        AS saves
    FROM events
    WHERE tmdb_id IS NOT NULL
-   GROUP BY bucket, media_type, tmdb_id
+   GROUP BY bucket, source, media_type, tmdb_id
    WITH NO DATA`
 );
 
@@ -71,11 +72,12 @@ await step(
   `CREATE MATERIALIZED VIEW IF NOT EXISTS query_activity_hourly
    WITH (timescaledb.continuous) AS
    SELECT time_bucket(INTERVAL '1 hour', time) AS bucket,
+          source,
           query,
           count(*) AS searches
    FROM events
    WHERE kind = 'vibe' AND query IS NOT NULL
-   GROUP BY bucket, query
+   GROUP BY bucket, source, query
    WITH NO DATA`
 );
 
@@ -84,9 +86,10 @@ await step(
   `CREATE MATERIALIZED VIEW IF NOT EXISTS total_activity_hourly
    WITH (timescaledb.continuous) AS
    SELECT time_bucket(INTERVAL '1 hour', time) AS bucket,
+          source,
           count(*) AS events
    FROM events
-   GROUP BY bucket
+   GROUP BY bucket, source
    WITH NO DATA`
 );
 
