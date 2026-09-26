@@ -19,7 +19,7 @@ export async function allowRequest(
   bucket: string,
   identity: string,
   limit: number,
-  windowSeconds: number
+  windowSeconds: number,
 ): Promise<boolean> {
   const db = await getDb();
   if (!db) return true;
@@ -35,7 +35,7 @@ export async function allowRequest(
         $inc: { count: 1 },
         $setOnInsert: { expiresAt: new Date((window + 2) * windowSeconds * 1000) },
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: "after" },
     );
     return (doc?.count ?? 1) <= limit;
   } catch {

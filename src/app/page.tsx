@@ -52,7 +52,7 @@ export default function Home() {
             ? "Vibe search isn't available right now."
             : res.status === 429
               ? "Vibe search is busy. Try again in a moment."
-              : "Couldn't run vibe search. Please try again."
+              : "Couldn't run vibe search. Please try again.",
         );
         setStatus("error");
         return;
@@ -79,7 +79,7 @@ export default function Home() {
       mode === "title" && viaVoice
         ? rawQuery.replace(
             /^(?:(?:show|find|give) me |i(?:'d| would) like |i want |recommend )?(?:some )?(?:movies?|shows?|series|anime|films?|something|stuff)? ?(?:like|similar to) /i,
-            ""
+            "",
           )
         : rawQuery;
 
@@ -100,7 +100,7 @@ export default function Home() {
         setErrorMessage(
           searchRes.status === 404
             ? `No matches found for "${query}". Try a different title.`
-            : "Something went wrong searching for that title. Please try again."
+            : "Something went wrong searching for that title. Please try again.",
         );
         setStatus("error");
         return;
@@ -110,7 +110,7 @@ export default function Home() {
       setMatchedTitle(match);
 
       const recsRes = await fetch(
-        `/api/recommendations?mediaType=${match.mediaType}&id=${match.id}`
+        `/api/recommendations?mediaType=${match.mediaType}&id=${match.id}`,
       );
       const recsData = await recsRes.json();
 
@@ -147,8 +147,8 @@ export default function Home() {
           Media Max
         </h1>
         <p className="max-w-md text-sm text-muted sm:text-base">
-          Select your next watch. Search a movie, show, or anime and get recommendations
-          with the same vibe — plus exactly where to stream them.
+          Select your next watch. Search a movie, show, or anime and get recommendations with the
+          same vibe — plus exactly where to stream them.
         </p>
 
         <div className="mt-4 flex w-full justify-center sm:mt-6">
@@ -225,7 +225,8 @@ export default function Home() {
         </p>
         <p className="mb-1">
           <span className="font-semibold text-foreground">mediamax.select</span>: a{" "}
-          <span className="font-mono">.select</span> domain, because the whole point is choosing well.
+          <span className="font-mono">.select</span> domain, because the whole point is choosing
+          well.
         </p>
         <p>
           Streaming availability data provided by{" "}

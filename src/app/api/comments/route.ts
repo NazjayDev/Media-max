@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   const viewerId = (await auth())?.user?.id;
   const key = mediaKey(media.mediaType, media.id);
   const beforeParam = params.get("before");
-  const before = beforeParam && !Number.isNaN(Date.parse(beforeParam)) ? new Date(beforeParam) : null;
+  const before =
+    beforeParam && !Number.isNaN(Date.parse(beforeParam)) ? new Date(beforeParam) : null;
 
   const visible = { mediaKey: key, hidden: { $ne: true } };
   const [top, total] = await Promise.all([
@@ -46,14 +47,17 @@ export async function GET(request: NextRequest) {
   const repliesByParent = new Map<string, PublicComment[]>();
   for (const r of replies) {
     const parent = r.parentId!.toHexString();
-    repliesByParent.set(parent, [...(repliesByParent.get(parent) ?? []), toPublic(r, viewerId, names)]);
+    repliesByParent.set(parent, [
+      ...(repliesByParent.get(parent) ?? []),
+      toPublic(r, viewerId, names),
+    ]);
   }
 
   return NextResponse.json({
     total,
     hasMore,
     comments: page.map((c) =>
-      toPublic(c, viewerId, names, repliesByParent.get(c._id.toHexString()) ?? [])
+      toPublic(c, viewerId, names, repliesByParent.get(c._id.toHexString()) ?? []),
     ),
   });
 }

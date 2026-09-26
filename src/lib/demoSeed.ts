@@ -36,7 +36,9 @@ const WATCHED_TARGET = 54;
 const DAY = 86_400_000;
 
 /** Fills a user's dashboard with a coherent sci-fi / crime / anime viewing history. */
-export async function seedDemoAccount(userId: string): Promise<{ watched: number; watching: number; want: number; favorites: number }> {
+export async function seedDemoAccount(
+  userId: string,
+): Promise<{ watched: number; watching: number; want: number; favorites: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
 
@@ -71,8 +73,14 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
     ...take((t) => has(t, "Drama") && plain(t), 7),
     ...take((t) => has(t, "Comedy") && plain(t), 4),
   ].slice(0, WATCHED_TARGET);
-  const watching = take((t) => t.mediaType === "tv" && has(t, "Science Fiction", "Sci-Fi & Fantasy", "Crime", "Drama"), 3);
-  const want = [...take((t) => has(t, "Science Fiction", "Sci-Fi & Fantasy"), 5), ...take((t) => t.mediaType === "tv", 4)];
+  const watching = take(
+    (t) => t.mediaType === "tv" && has(t, "Science Fiction", "Sci-Fi & Fantasy", "Crime", "Drama"),
+    3,
+  );
+  const want = [
+    ...take((t) => has(t, "Science Fiction", "Sci-Fi & Fantasy"), 5),
+    ...take((t) => t.mediaType === "tv", 4),
+  ];
 
   // Most-recently watched are well-known titles, so their "Because you watched" rows are strong.
   const byFame = [...watched].sort((a, b) => b.voteCount - a.voteCount);
@@ -91,15 +99,19 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
   // Five-star favorites: the best-regarded sci-fi (this viewer's headline genre) plus a few standouts elsewhere.
   const isSciFi = (t: CatalogRow) => has(t, "Science Fiction", "Sci-Fi & Fantasy") && !t.anime;
   const byScore = [...watched].sort((a, b) => b.voteAverage - a.voteAverage);
-  [...byScore.filter(isSciFi).slice(0, 6), ...byScore.filter((t) => !isSciFi(t)).slice(0, 3)].forEach((t) =>
-    ratings.set(t._id, 5)
-  );
+  [
+    ...byScore.filter(isSciFi).slice(0, 6),
+    ...byScore.filter((t) => !isSciFi(t)).slice(0, 3),
+  ].forEach((t) => ratings.set(t._id, 5));
   // Lowest-scored titles become the ones this viewer didn't love.
   const misses = [...watched].sort((a, b) => a.voteAverage - b.voteAverage).slice(0, 6);
   misses.forEach((t, i) => ratings.set(t._id, [2, 2.5, 3, 2.5, 3, 3.5][i]));
 
   const favoriteKeys = new Set(
-    [...watched].sort((a, b) => (ratings.get(b._id) ?? 0) - (ratings.get(a._id) ?? 0)).slice(0, 9).map((t) => t._id)
+    [...watched]
+      .sort((a, b) => (ratings.get(b._id) ?? 0) - (ratings.get(a._id) ?? 0))
+      .slice(0, 9)
+      .map((t) => t._id),
   );
 
   const everything = [...watched, ...watching, ...want];
@@ -107,8 +119,11 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
   for (let i = 0; i < everything.length; i += 8) {
     await Promise.all(
       everything.slice(i, i + 8).map(async (t) => {
-        providers.set(t._id, await getWatchProviders(t.mediaType, t.tmdbId, WATCH_REGION).catch(() => []));
-      })
+        providers.set(
+          t._id,
+          await getWatchProviders(t.mediaType, t.tmdbId, WATCH_REGION).catch(() => []),
+        );
+      }),
     );
   }
 
@@ -166,9 +181,21 @@ export async function seedDemoAccount(userId: string): Promise<{ watched: number
 
   // A friendly default alias for the discussion, only if the account has none yet.
   await db
-    .collection<{ _id: string; username: string; usernameLower: string; updatedAt: Date }>("profiles")
-    .insertOne({ _id: userId, username: "demo_viewer", usernameLower: "demo_viewer", updatedAt: new Date() })
+    .collection<{ _id: string; username: string; usernameLower: string; updatedAt: Date }>(
+      "profiles",
+    )
+    .insertOne({
+      _id: userId,
+      username: "demo_viewer",
+      usernameLower: "demo_viewer",
+      updatedAt: new Date(),
+    })
     .catch(() => undefined);
 
-  return { watched: watched.length, watching: watching.length, want: want.length, favorites: favoriteKeys.size };
+  return {
+    watched: watched.length,
+    watching: watching.length,
+    want: want.length,
+    favorites: favoriteKeys.size,
+  };
 }

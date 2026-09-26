@@ -22,7 +22,7 @@ export const catalogKey = (mediaType: MediaType, id: number) => `${mediaType}:${
 /** Nearest catalog titles to a query vector. Returns [] if the catalog isn't available. */
 export async function nearestTitles(
   vector: number[],
-  options: { limit?: number; excludeKey?: string; excludeKeys?: string[] } = {}
+  options: { limit?: number; excludeKey?: string; excludeKeys?: string[] } = {},
 ): Promise<CatalogTitle[]> {
   const db = await getDb();
   if (!db) return [];
@@ -55,7 +55,7 @@ export async function nearestTitles(
 
 /** A catalog title together with its stored embedding, if it is in the catalog. */
 export async function getCatalogEntry(
-  key: string
+  key: string,
 ): Promise<(CatalogTitle & { embedding?: number[] }) | null> {
   const db = await getDb();
   if (!db) return null;

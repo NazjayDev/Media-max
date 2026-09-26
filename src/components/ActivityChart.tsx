@@ -21,7 +21,10 @@ export default function ActivityChart({ points }: ActivityChartProps) {
             key={p.hour}
             title={`${label.format(new Date(p.hour))}: ${p.events} events`}
             className="flex-1 rounded-t bg-gradient-to-t from-accent-from to-accent-to"
-            style={{ height: `${Math.max((p.events / max) * 100, p.events > 0 ? 4 : 1)}%`, opacity: p.events > 0 ? 1 : 0.25 }}
+            style={{
+              height: `${Math.max((p.events / max) * 100, p.events > 0 ? 4 : 1)}%`,
+              opacity: p.events > 0 ? 1 : 0.25,
+            }}
           />
         ))}
       </div>

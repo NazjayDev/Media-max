@@ -76,17 +76,14 @@ function describeCandidate(c: Candidate): string {
 function isRefined(value: unknown): value is Refined {
   const v = value as Partial<Refined> | null;
   return (
-    !!v &&
-    typeof v.key === "string" &&
-    typeof v.blurb === "string" &&
-    typeof v.why === "string"
+    !!v && typeof v.key === "string" && typeof v.blurb === "string" && typeof v.why === "string"
   );
 }
 
 export async function refineCandidates(
   wanted: string,
   candidates: Candidate[],
-  options: { max: number; min: number }
+  options: { max: number; min: number },
 ): Promise<Refined[]> {
   const ai = new GoogleGenAI({});
   const models = modelChain();
@@ -136,7 +133,8 @@ ${candidates.map(describeCandidate).join("\n")}`;
       }),
       signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
-    if (!res.ok) throw new Error(`DigitalOcean inference ${res.status}: ${(await res.text()).slice(0, 160)}`);
+    if (!res.ok)
+      throw new Error(`DigitalOcean inference ${res.status}: ${(await res.text()).slice(0, 160)}`);
 
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}") as { picks?: unknown };
@@ -190,7 +188,7 @@ ${candidates.map(describeCandidate).join("\n")}`;
             clearTimeout(timer);
             startNext();
           }
-        }
+        },
       );
     };
 

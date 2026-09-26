@@ -33,13 +33,20 @@ export async function PUT(request: NextRequest) {
   try {
     await profiles.updateOne(
       { _id: userId },
-      { $set: { username: check.username, usernameLower: check.username.toLowerCase(), updatedAt: new Date() } },
-      { upsert: true }
+      {
+        $set: {
+          username: check.username,
+          usernameLower: check.username.toLowerCase(),
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true },
     );
     return NextResponse.json({ username: check.username });
   } catch (error) {
     // Duplicate key on the case-insensitive unique index means the name is taken.
-    if ((error as { code?: number }).code === 11000) return jsonError("That username is taken.", 409);
+    if ((error as { code?: number }).code === 11000)
+      return jsonError("That username is taken.", 409);
     console.error("Username update failed:", error instanceof Error ? error.message : error);
     return jsonError("Couldn't save your username.", 502);
   }

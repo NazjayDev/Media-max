@@ -16,7 +16,10 @@ export async function GET() {
   if (!collection) return jsonError("Picks are unavailable", 503);
 
   const docs = await collection
-    .find({ userId: guard.userId }, { projection: { key: 1, status: 1, userRating: 1, addedAt: 1 } })
+    .find(
+      { userId: guard.userId },
+      { projection: { key: 1, status: 1, userRating: 1, addedAt: 1 } },
+    )
     .sort({ addedAt: -1 })
     .limit(500)
     .toArray();
@@ -30,7 +33,10 @@ export async function GET() {
   const seeds = [...loved, ...watched, ...rest].slice(0, MAX_SEEDS).map((d) => d.key);
 
   try {
-    const results = await personalRecommendations(seeds, docs.map((d) => d.key));
+    const results = await personalRecommendations(
+      seeds,
+      docs.map((d) => d.key),
+    );
     return NextResponse.json({ results: await attachRatings(results), basedOn: seeds.length });
   } catch (error) {
     console.error("Personal picks failed:", error);

@@ -35,15 +35,14 @@ export default function TrendingPage() {
         Trending
       </h1>
       <p className="mt-2 max-w-xl text-sm text-muted">
-        Live from the last 24 hours of searches and saves. Every event is stored
-        anonymously in a Tiger Data (TimescaleDB) hypertable and rolled up
-        hourly by continuous aggregates.
+        Live from the last 24 hours of searches and saves. Every event is stored anonymously in a
+        Tiger Data (TimescaleDB) hypertable and rolled up hourly by continuous aggregates.
       </p>
       {data?.includesDemo && (
         <div className="mt-2 flex max-w-xl flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
           <span>
-            Demo account showcase: this view adds sample activity so the page is
-            full for the presentation. Regular visitors only see real activity.
+            Demo account showcase: this view adds sample activity so the page is full for the
+            presentation. Regular visitors only see real activity.
           </span>
           {isDemo && (
             <button

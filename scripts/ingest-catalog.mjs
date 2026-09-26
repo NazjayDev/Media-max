@@ -53,7 +53,7 @@ async function mapLimit(items, limit, fn) {
         const idx = i++;
         results[idx] = await fn(items[idx], idx);
       }
-    })
+    }),
   );
   return results;
 }
@@ -83,7 +83,7 @@ async function main() {
         sort_by: "vote_count.desc",
         include_adult: "false",
         page: String(page),
-      }).catch(() => ({ results: [] }))
+      }).catch(() => ({ results: [] })),
     );
     let added = 0;
     for (const page of results) {
@@ -114,8 +114,8 @@ async function main() {
 
   const existing = new Set(
     (await col.find({ embedding: { $exists: true } }, { projection: { _id: 1 } }).toArray()).map(
-      (d) => d._id
-    )
+      (d) => d._id,
+    ),
   );
   // INGEST_LIMIT caps texts embedded per run, leaving daily quota for live searches.
   const limit = Number(process.env.INGEST_LIMIT || Infinity);
@@ -129,7 +129,7 @@ async function main() {
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
     const texts = batch.map(
-      (d) => `${d.title} (${d.year ?? "n/a"}). Genres: ${d.genres.join(", ")}. ${d.overview}`
+      (d) => `${d.title} (${d.year ?? "n/a"}). Genres: ${d.genres.join(", ")}. ${d.overview}`,
     );
 
     let embeddings;
@@ -145,7 +145,9 @@ async function main() {
       } catch (e) {
         const hinted = /retry in ([\d.]+)s/.exec(String(e.message));
         const wait = hinted ? Math.ceil(Number(hinted[1]) * 1000) + 2000 : 8000 * (attempt + 1);
-        console.log(`  embed retry ${attempt + 1} in ${wait / 1000}s: ${String(e.message).slice(0, 90)}`);
+        console.log(
+          `  embed retry ${attempt + 1} in ${wait / 1000}s: ${String(e.message).slice(0, 90)}`,
+        );
         await sleep(wait);
       }
     }
@@ -153,8 +155,12 @@ async function main() {
 
     await col.bulkWrite(
       batch.map((d, idx) => ({
-        replaceOne: { filter: { _id: d._id }, replacement: { ...d, embedding: embeddings[idx] }, upsert: true },
-      }))
+        replaceOne: {
+          filter: { _id: d._id },
+          replacement: { ...d, embedding: embeddings[idx] },
+          upsert: true,
+        },
+      })),
     );
     console.log(`Embedded ${Math.min(i + BATCH, todo.length)}/${todo.length}`);
     await sleep(32000);

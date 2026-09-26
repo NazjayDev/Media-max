@@ -10,11 +10,7 @@ interface RecommendationCardProps {
   footer?: React.ReactNode;
 }
 
-export default function RecommendationCard({
-  item,
-  index,
-  footer,
-}: RecommendationCardProps) {
+export default function RecommendationCard({ item, index, footer }: RecommendationCardProps) {
   return (
     <article
       className="animate-fade-up group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-from/10"
@@ -46,10 +42,7 @@ export default function RecommendationCard({
 
       <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
         <h3 className="text-sm font-semibold leading-snug sm:text-base">
-          <Link
-            href={`/title/${item.mediaType}/${item.id}`}
-            className="hover:underline"
-          >
+          <Link href={`/title/${item.mediaType}/${item.id}`} className="hover:underline">
             {item.title}
           </Link>
         </h3>
@@ -91,9 +84,7 @@ export default function RecommendationCard({
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted">
-              Not currently available to stream
-            </p>
+            <p className="text-xs text-muted">Not currently available to stream</p>
           )}
         </div>
         <Link

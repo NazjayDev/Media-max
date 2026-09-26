@@ -71,7 +71,11 @@ export default function NarrateButton({ script, autoPlayToken }: NarrateButtonPr
         className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from disabled:opacity-60"
       >
         <span aria-hidden>{state === "playing" ? "■" : "🔊"}</span>
-        {state === "loading" ? "Preparing audio..." : state === "playing" ? "Stop" : "Listen to my picks"}
+        {state === "loading"
+          ? "Preparing audio..."
+          : state === "playing"
+            ? "Stop"
+            : "Listen to my picks"}
       </button>
       {message && (
         <span role="status" className="text-[11px] text-muted">

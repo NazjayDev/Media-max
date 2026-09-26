@@ -1,12 +1,7 @@
 import { createHash } from "node:crypto";
 import { cached } from "@/lib/cache";
 import { DAY_SECONDS, WATCH_REGION } from "@/lib/config";
-import {
-  catalogKey,
-  getCatalogEntry,
-  nearestTitles,
-  type CatalogTitle,
-} from "@/lib/catalog";
+import { catalogKey, getCatalogEntry, nearestTitles, type CatalogTitle } from "@/lib/catalog";
 import { embedQuery } from "@/lib/embeddings";
 import { refineCandidates, type Candidate } from "@/lib/refine";
 import {
@@ -16,7 +11,6 @@ import {
   tmdbFetch,
 } from "@/lib/tmdb";
 import type { MediaType, Recommendation } from "@/types/media";
-
 
 function poster(path: string | null): string | null {
   return path ? `${TMDB_IMAGE_BASE_URL}/w342${path}` : null;
@@ -48,15 +42,10 @@ function shortBlurb(overview: string): string {
   return text.length > 150 ? `${text.slice(0, 147).trimEnd()}...` : text;
 }
 
-async function hydrateUnrefined(
-  candidates: Candidate[],
-  count: number,
-): Promise<Recommendation[]> {
+async function hydrateUnrefined(candidates: Candidate[], count: number): Promise<Recommendation[]> {
   return hydrate(
     candidates,
-    candidates
-      .slice(0, count)
-      .map((c) => ({ key: c.key, blurb: shortBlurb(c.overview), why: "" })),
+    candidates.slice(0, count).map((c) => ({ key: c.key, blurb: shortBlurb(c.overview), why: "" })),
   );
 }
 
@@ -76,20 +65,14 @@ async function hydrate(
         synopsis: c.overview,
         blurb: r.blurb,
         why: r.why || undefined,
-        streamingProviders: await getWatchProviders(
-          c.mediaType,
-          c.id,
-          WATCH_REGION,
-        ),
+        streamingProviders: await getWatchProviders(c.mediaType, c.id, WATCH_REGION),
       };
     }),
   );
 }
 
 /** Vibe search: embed the description, pull nearest catalog titles, let Gemini pick and explain. */
-export async function vibeRecommendations(
-  vibe: string,
-): Promise<Recommendation[]> {
+export async function vibeRecommendations(vibe: string): Promise<Recommendation[]> {
   const normalized = vibe.toLowerCase().replace(/\s+/g, " ").trim();
   return cached(`vibe3:${normalized}`, 7 * DAY_SECONDS, async () => {
     const vector = await embedQuery(vibe);
@@ -100,14 +83,10 @@ export async function vibeRecommendations(
 
     const candidates = nearest.map(fromCatalog);
     try {
-      const refined = await refineCandidates(
-        `The user wants: "${vibe}"`,
-        candidates,
-        {
-          max: 8,
-          min: 5,
-        },
-      );
+      const refined = await refineCandidates(`The user wants: "${vibe}"`, candidates, {
+        max: 8,
+        min: 5,
+      });
       return await hydrate(candidates, refined);
     } catch (error) {
       console.error(
@@ -140,11 +119,7 @@ export async function titleRecommendations(
     const seedKey = catalogKey(mediaType, id);
     const details = await tmdbFetch<TmdbDetails>(`/${mediaType}/${id}`);
     const seedTitle = details.title ?? details.name ?? "this title";
-    const seedYear = (
-      details.release_date ??
-      details.first_air_date ??
-      ""
-    ).slice(0, 4);
+    const seedYear = (details.release_date ?? details.first_air_date ?? "").slice(0, 4);
     const seedGenres = details.genres.map((g) => g.name);
     const seedText = `${seedTitle} (${seedYear}). Genres: ${seedGenres.join(", ")}. ${details.overview}`;
 
@@ -204,12 +179,14 @@ They want titles a fan of this would love next.`,
 /** Personalised picks: average the embeddings of titles the user liked, then refine the neighbours. */
 export async function personalRecommendations(
   likedKeys: string[],
-  excludeKeys: string[]
+  excludeKeys: string[],
 ): Promise<Recommendation[]> {
-  const cacheKey = `picks:${createHash("sha1").update([...likedKeys].sort().join("|")).digest("hex")}`;
+  const cacheKey = `picks:${createHash("sha1")
+    .update([...likedKeys].sort().join("|"))
+    .digest("hex")}`;
   return cached(cacheKey, DAY_SECONDS, async () => {
     const entries = (await Promise.all(likedKeys.map((k) => getCatalogEntry(k)))).filter(
-      (e): e is NonNullable<typeof e> & { embedding: number[] } => !!e?.embedding
+      (e): e is NonNullable<typeof e> & { embedding: number[] } => !!e?.embedding,
     );
     if (entries.length === 0) return [];
 
@@ -230,11 +207,14 @@ export async function personalRecommendations(
           .join("; ")}.
 Recommend titles that fit their overall taste, weighing what these have in common.`,
         candidates,
-        { max: 8, min: 5 }
+        { max: 8, min: 5 },
       );
       return await hydrate(candidates, refined);
     } catch (error) {
-      console.error("Picks refinement unavailable:", error instanceof Error ? error.message.slice(0, 120) : error);
+      console.error(
+        "Picks refinement unavailable:",
+        error instanceof Error ? error.message.slice(0, 120) : error,
+      );
       throw new DegradedResults(await hydrateUnrefined(candidates, 8));
     }
   }).catch((error) => {

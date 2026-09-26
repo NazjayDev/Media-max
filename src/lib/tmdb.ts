@@ -46,7 +46,7 @@ export async function tmdbFetchMany<T>(paths: string[]): Promise<(T | undefined)
   return cachedMany<T>(
     paths.map((p) => cacheKey(tmdbUrl(p))),
     CACHE_TTL_SECONDS,
-    (key) => requestTmdb<T>(urls.get(key)!).catch(() => undefined)
+    (key) => requestTmdb<T>(urls.get(key)!).catch(() => undefined),
   );
 }
 
@@ -75,7 +75,7 @@ export async function searchTitle(query: string): Promise<SearchResult | null> {
 
   const candidates = data.results.filter(
     (r): r is TmdbMultiSearchResult & { media_type: "movie" | "tv" } =>
-      r.media_type === "movie" || r.media_type === "tv"
+      r.media_type === "movie" || r.media_type === "tv",
   );
 
   if (candidates.length === 0) {
@@ -92,7 +92,7 @@ export async function searchTitle(query: string): Promise<SearchResult | null> {
   };
 }
 
-export interface TmdbRecommendationResult {
+interface TmdbRecommendationResult {
   id: number;
   title?: string;
   name?: string;
@@ -119,10 +119,10 @@ interface TmdbWatchProvidersResponse {
 
 export async function fetchRawRecommendations(
   mediaType: MediaType,
-  id: number
+  id: number,
 ): Promise<TmdbRecommendationResult[]> {
   const recommendations = await tmdbFetch<TmdbRecommendationResponse>(
-    `/${mediaType}/${id}/recommendations`
+    `/${mediaType}/${id}/recommendations`,
   );
 
   if (recommendations.results.length > 0) {
@@ -146,7 +146,7 @@ export async function lookupRecommendation(
   title: string,
   mediaType: MediaType,
   year?: number,
-  region: string = WATCH_REGION
+  region: string = WATCH_REGION,
 ): Promise<Recommendation | null> {
   const params: Record<string, string> = { query: title, include_adult: "false" };
   if (year) {
@@ -172,7 +172,7 @@ export async function lookupRecommendation(
 export async function getWatchProviders(
   mediaType: MediaType,
   id: number,
-  region: string
+  region: string,
 ): Promise<StreamingProvider[]> {
   try {
     const data = await tmdbFetch<TmdbWatchProvidersResponse>(`/${mediaType}/${id}/watch/providers`);
@@ -195,7 +195,7 @@ export async function getWatchProviders(
 export async function getRecommendationsWithProviders(
   mediaType: MediaType,
   id: number,
-  region: string = WATCH_REGION
+  region: string = WATCH_REGION,
 ): Promise<Recommendation[]> {
   const raw = (await fetchRawRecommendations(mediaType, id)).slice(0, 10);
 
@@ -210,7 +210,7 @@ export async function getRecommendationsWithProviders(
         synopsis: item.overview,
         streamingProviders,
       };
-    })
+    }),
   );
 
   return enriched;
@@ -227,7 +227,7 @@ interface TmdbTitleDetails {
 export async function getTitleCard(
   mediaType: MediaType,
   id: number,
-  region: string = WATCH_REGION
+  region: string = WATCH_REGION,
 ): Promise<Recommendation | null> {
   try {
     const d = await tmdbFetch<TmdbTitleDetails>(`/${mediaType}/${id}`);

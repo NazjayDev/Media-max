@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (!(await allowRequest("stt", clientIp(request), 20, 3600))) {
-    return NextResponse.json({ error: "Too many voice searches. Try again later." }, { status: 429 });
+    return NextResponse.json(
+      { error: "Too many voice searches. Try again later." },
+      { status: 429 },
+    );
   }
 
   const form = await request.formData().catch(() => null);
@@ -29,7 +32,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const extension = audio.type.includes("mp4") ? "mp4" : audio.type.includes("ogg") ? "ogg" : "webm";
+    const extension = audio.type.includes("mp4")
+      ? "mp4"
+      : audio.type.includes("ogg")
+        ? "ogg"
+        : "webm";
     const text = (await transcribe(audio, `speech.${extension}`)).slice(0, MAX_TRANSCRIPT_CHARS);
     if (!text) {
       return NextResponse.json({ error: "I didn't catch that. Try again." }, { status: 422 });
@@ -37,10 +44,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ text });
   } catch (error) {
     console.error("Transcription failed:", error instanceof Error ? error.message : error);
-    const quota = error instanceof ElevenLabsError && (error.status === 401 || error.status === 429);
+    const quota =
+      error instanceof ElevenLabsError && (error.status === 401 || error.status === 429);
     return NextResponse.json(
       { error: quota ? "Voice search is unavailable right now" : "Couldn't transcribe that" },
-      { status: quota ? 503 : 502 }
+      { status: quota ? 503 : 502 },
     );
   }
 }

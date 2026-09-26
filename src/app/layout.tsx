@@ -23,7 +23,8 @@ export const metadata: Metadata = {
     "Search a movie, show, or anime, or describe a vibe, and select your next watch from AI-refined recommendations with streaming links.",
   openGraph: {
     title: "Media Max: select your next watch",
-    description: "Curated movie, TV and anime picks with the same vibe, and exactly where to stream them.",
+    description:
+      "Curated movie, TV and anime picks with the same vibe, and exactly where to stream them.",
     url: "https://mediamax.select",
     siteName: "Media Max",
     type: "website",
@@ -32,10 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers>
           <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-8">

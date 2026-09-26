@@ -94,12 +94,12 @@ export async function POST(request: NextRequest) {
       $set: { item },
       $setOnInsert: { addedAt: new Date(), status: "want", userRating: null, favorite: false },
     },
-    { upsert: true }
+    { upsert: true },
   );
 
   if (saved.upsertedCount > 0) {
     after(() =>
-      logEvent({ kind: "save", mediaType: item.mediaType, tmdbId: item.id, title: item.title })
+      logEvent({ kind: "save", mediaType: item.mediaType, tmdbId: item.id, title: item.title }),
     );
   }
   return NextResponse.json({ ok: true });
@@ -158,7 +158,7 @@ export async function PATCH(request: NextRequest) {
 
   const result = await ctx.collection.updateOne(
     { userId: ctx.userId, key: mediaKey(media.mediaType, media.id) },
-    { $set: update }
+    { $set: update },
   );
   if (result.matchedCount === 0) return jsonError("Not in watchlist", 404);
   return NextResponse.json({ ok: true });

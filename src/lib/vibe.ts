@@ -2,7 +2,7 @@ import { ApiError, GoogleGenAI, Type } from "@google/genai";
 import { cached } from "@/lib/cache";
 import type { MediaType } from "@/types/media";
 
-export interface VibeSuggestion {
+interface VibeSuggestion {
   title: string;
   year: number;
   mediaType: MediaType;

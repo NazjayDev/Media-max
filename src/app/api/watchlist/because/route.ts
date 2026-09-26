@@ -26,7 +26,8 @@ export async function GET() {
   const lastWatched = docs
     .filter((d) => d.status === "watched")
     .sort(
-      (a, b) => (b.statusUpdatedAt ?? b.addedAt).getTime() - (a.statusUpdatedAt ?? a.addedAt).getTime()
+      (a, b) =>
+        (b.statusUpdatedAt ?? b.addedAt).getTime() - (a.statusUpdatedAt ?? a.addedAt).getTime(),
     )
     .slice(0, CANDIDATES);
 
@@ -40,11 +41,16 @@ export async function GET() {
         const fresh = recs.filter((r) => !saved.has(`${r.mediaType}:${r.id}`)).slice(0, PER_ROW);
         return { basedOn, results: await attachRatings(fresh) };
       } catch (error) {
-        console.error(`Because-you-watched failed for ${key}:`, error instanceof Error ? error.message : error);
+        console.error(
+          `Because-you-watched failed for ${key}:`,
+          error instanceof Error ? error.message : error,
+        );
         return { basedOn, results: [] };
       }
-    })
+    }),
   );
 
-  return NextResponse.json({ rows: rows.filter((r) => r.results.length >= MIN_RESULTS).slice(0, ROWS) });
+  return NextResponse.json({
+    rows: rows.filter((r) => r.results.length >= MIN_RESULTS).slice(0, ROWS),
+  });
 }

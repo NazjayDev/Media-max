@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { jsonError, requireUser } from "@/lib/api";
-import {
-  HIDE_AFTER_REPORTS,
-  REPORT_REASONS,
-  SPOILER_AFTER_REPORTS,
-  commentsCollection,
-  type ReportReason,
-} from "@/lib/comments";
+import { REPORT_REASONS, type ReportReason } from "@/lib/commentRules";
+import { HIDE_AFTER_REPORTS, SPOILER_AFTER_REPORTS, commentsCollection } from "@/lib/comments";
 import { allowRequest } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
@@ -21,7 +16,8 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as { id?: string; reason?: string } | null;
   if (!body?.id || !ObjectId.isValid(body.id)) return jsonError("Invalid comment", 400);
-  if (!REPORT_REASONS.includes(body.reason as ReportReason)) return jsonError("Choose a reason", 400);
+  if (!REPORT_REASONS.includes(body.reason as ReportReason))
+    return jsonError("Choose a reason", 400);
   const reason = body.reason as ReportReason;
 
   const collection = await commentsCollection();
@@ -36,7 +32,7 @@ export async function POST(request: NextRequest) {
     const updated = await collection.findOneAndUpdate(
       { _id, "reports.userId": { $ne: userId } },
       { $push: { reports: { userId, reason, at: new Date() } } },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     const reports = updated?.reports ?? [];

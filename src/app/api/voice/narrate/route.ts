@@ -19,7 +19,10 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as { text?: unknown } | null;
   const text = typeof body?.text === "string" ? body.text.trim() : "";
   if (!text || text.length > MAX_TEXT_CHARS) {
-    return NextResponse.json({ error: `Text must be 1-${MAX_TEXT_CHARS} characters` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Text must be 1-${MAX_TEXT_CHARS} characters` },
+      { status: 400 },
+    );
   }
 
   const ip = clientIp(request);
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
     const unavailable = error instanceof ElevenLabsError && [401, 402, 429].includes(error.status);
     return NextResponse.json(
       { error: unavailable ? "Narration is unavailable right now" : "Couldn't generate narration" },
-      { status: unavailable ? 503 : 502 }
+      { status: unavailable ? 503 : 502 },
     );
   }
 }

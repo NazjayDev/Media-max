@@ -27,9 +27,12 @@ async function worker() {
     const t = titles[next++];
     const started = Date.now();
     try {
-      const res = await fetch(`${base}/api/recommendations?mediaType=${t.mediaType}&id=${t.tmdbId}`, {
-        signal: AbortSignal.timeout(60000),
-      });
+      const res = await fetch(
+        `${base}/api/recommendations?mediaType=${t.mediaType}&id=${t.tmdbId}`,
+        {
+          signal: AbortSignal.timeout(60000),
+        },
+      );
       const data = await res.json();
       if (data.results?.[0]?.blurb) refined++;
       else failed.push(t.title);

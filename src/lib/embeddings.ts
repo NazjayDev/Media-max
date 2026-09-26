@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { cached } from "@/lib/cache";
 
 export const EMBED_MODEL = "gemini-embedding-001";
-export const EMBED_DIMENSIONS = 768;
+const EMBED_DIMENSIONS = 768;
 
 const EMBED_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 

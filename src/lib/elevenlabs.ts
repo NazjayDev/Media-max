@@ -8,7 +8,7 @@ const STT_MODEL = "scribe_v1";
 export class ElevenLabsError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
   ) {
     super(message);
   }
@@ -44,19 +44,16 @@ export async function transcribe(audio: Blob, filename: string): Promise<string>
 
 /** Text-to-speech. Returns MP3 bytes. */
 export async function synthesize(text: string): Promise<Buffer> {
-  const res = await fetch(
-    `${API}/text-to-speech/${voiceId()}?output_format=mp3_44100_64`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY!,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({ text, model_id: TTS_MODEL }),
-      signal: AbortSignal.timeout(25000),
-    }
-  );
+  const res = await fetch(`${API}/text-to-speech/${voiceId()}?output_format=mp3_44100_64`, {
+    method: "POST",
+    headers: {
+      "xi-api-key": process.env.ELEVENLABS_API_KEY!,
+      "Content-Type": "application/json",
+      Accept: "audio/mpeg",
+    },
+    body: JSON.stringify({ text, model_id: TTS_MODEL }),
+    signal: AbortSignal.timeout(25000),
+  });
   if (!res.ok) throw await failure(res);
   return Buffer.from(await res.arrayBuffer());
 }

@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
     }
 
     after(() =>
-      logEvent({ kind: "search", mediaType: result.mediaType, tmdbId: result.id, title: result.title })
+      logEvent({
+        kind: "search",
+        mediaType: result.mediaType,
+        tmdbId: result.id,
+        title: result.title,
+      }),
     );
     return NextResponse.json(result);
   } catch (error) {

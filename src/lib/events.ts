@@ -1,9 +1,9 @@
 import { getTiger } from "@/lib/tiger";
 import type { MediaType } from "@/types/media";
 
-export type EventKind = "search" | "vibe" | "save";
+type EventKind = "search" | "vibe" | "save";
 
-export interface ActivityEvent {
+interface ActivityEvent {
   kind: EventKind;
   mediaType?: MediaType;
   tmdbId?: number;
@@ -31,7 +31,7 @@ export async function logEvent(event: ActivityEvent): Promise<void> {
         event.tmdbId ?? null,
         event.title?.slice(0, 200) ?? null,
         event.query ? normalize(event.query) : null,
-      ]
+      ],
     );
   } catch (error) {
     console.error("Event logging failed:", error instanceof Error ? error.message : error);

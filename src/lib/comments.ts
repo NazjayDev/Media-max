@@ -1,16 +1,14 @@
 import { ObjectId } from "mongodb";
+import { MAX_COMMENT_LENGTH, type ReportReason } from "@/lib/commentRules";
 import { ensureIndex, getDb } from "@/lib/mongodb";
 
-export type ReportReason = "spoiler" | "harassment" | "offtopic" | "spam";
-export const REPORT_REASONS: ReportReason[] = ["spoiler", "harassment", "offtopic", "spam"];
-
-export interface CommentReport {
+interface CommentReport {
   userId: string;
   reason: ReportReason;
   at: Date;
 }
 
-export interface CommentDoc {
+interface CommentDoc {
   _id: ObjectId;
   mediaKey: string;
   parentId: ObjectId | null;
@@ -34,7 +32,6 @@ export interface PublicComment {
   replies: PublicComment[];
 }
 
-export const MAX_COMMENT_LENGTH = 1000;
 // Different people must agree before a comment is covered or hidden.
 export const HIDE_AFTER_REPORTS = 3;
 export const SPOILER_AFTER_REPORTS = 2;
@@ -51,7 +48,7 @@ export function toPublic(
   doc: CommentDoc,
   viewerId: string | undefined,
   names: Map<string, string>,
-  replies: PublicComment[] = []
+  replies: PublicComment[] = [],
 ): PublicComment {
   return {
     id: doc._id.toHexString(),
@@ -67,6 +64,9 @@ export function toPublic(
 /** Trims, normalizes blank lines, and enforces the length limit. Returns null when invalid. */
 export function cleanBody(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const body = raw.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  const body = raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return body.length > 0 && body.length <= MAX_COMMENT_LENGTH ? body : null;
 }

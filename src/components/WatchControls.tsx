@@ -16,21 +16,14 @@ interface StarRatingProps {
 }
 
 /** Five stars with half-star steps: the left half of a star sets n - 0.5, the right half sets n. */
-export function StarRating({ value, onChange, title }: StarRatingProps) {
+function StarRating({ value, onChange, title }: StarRatingProps) {
   return (
-    <div
-      role="group"
-      aria-label={`Your rating for ${title}`}
-      className="flex items-center gap-0.5"
-    >
+    <div role="group" aria-label={`Your rating for ${title}`} className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => {
         const fill = value >= n ? 100 : value >= n - 0.5 ? 50 : 0;
         return (
           <span key={n} className="relative inline-block h-5 w-5 text-xl">
-            <span
-              aria-hidden
-              className="block w-5 text-center leading-5 text-muted/40"
-            >
+            <span aria-hidden className="block w-5 text-center leading-5 text-muted/40">
               ★
             </span>
             <span
@@ -66,11 +59,7 @@ export default function WatchControls({ entry }: { entry: WatchlistEntry }) {
 
   return (
     <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-      <div
-        role="group"
-        aria-label={`Status for ${entry.title}`}
-        className="grid grid-cols-3 gap-1"
-      >
+      <div role="group" aria-label={`Status for ${entry.title}`} className="grid grid-cols-3 gap-1">
         {STATUS_OPTIONS.map((opt) => (
           <button
             key={opt.value}

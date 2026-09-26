@@ -22,7 +22,13 @@ export interface TrendingData {
   generatedAt: string;
 }
 
-const EMPTY: TrendingData = { titles: [], queries: [], activity: [], includesDemo: false, generatedAt: "" };
+const EMPTY: TrendingData = {
+  titles: [],
+  queries: [],
+  activity: [],
+  includesDemo: false,
+  generatedAt: "",
+};
 const HOURS = 24;
 
 // Recent activity counts more: weights decay with a 6-hour time constant, and a save is worth 3 searches.
@@ -85,7 +91,7 @@ async function compute(includeDemo: boolean): Promise<TrendingData> {
   const [top, queries, activity, demo] = await Promise.all([
     pool.query<{ media_type: MediaType; tmdb_id: number; searches: number; saves: number }>(
       TOP_TITLES_SQL,
-      [includeDemo]
+      [includeDemo],
     ),
     pool.query<{ query: string; count: number }>(TOP_QUERIES_SQL, [includeDemo]),
     pool.query<{ hour: Date; events: number }>(ACTIVITY_SQL, [includeDemo]),
@@ -94,7 +100,12 @@ async function compute(includeDemo: boolean): Promise<TrendingData> {
 
   const ids = top.rows.map((r) => r.tmdb_id);
   const seriesRows = ids.length
-    ? (await pool.query<{ media_type: MediaType; tmdb_id: number; n: number }>(SERIES_SQL, [includeDemo, ids])).rows
+    ? (
+        await pool.query<{ media_type: MediaType; tmdb_id: number; n: number }>(SERIES_SQL, [
+          includeDemo,
+          ids,
+        ])
+      ).rows
     : [];
 
   const seriesByKey = new Map<string, number[]>();
@@ -129,7 +140,9 @@ async function compute(includeDemo: boolean): Promise<TrendingData> {
  */
 export async function getTrending(includeDemo = false): Promise<TrendingData> {
   try {
-    return await cached(`trending:v3:${includeDemo ? "demo" : "public"}`, 60, () => compute(includeDemo));
+    return await cached(`trending:v3:${includeDemo ? "demo" : "public"}`, 60, () =>
+      compute(includeDemo),
+    );
   } catch (error) {
     console.error("Trending query failed:", error instanceof Error ? error.message : error);
     return EMPTY;

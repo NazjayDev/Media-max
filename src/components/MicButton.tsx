@@ -12,7 +12,7 @@ const canRecord = () =>
 
 function pickMimeType(): string | undefined {
   return ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((t) =>
-    MediaRecorder.isTypeSupported(t)
+    MediaRecorder.isTypeSupported(t),
   );
 }
 

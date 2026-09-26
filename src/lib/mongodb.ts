@@ -35,7 +35,7 @@ const ensuredIndexes = new Set<string>();
 export async function ensureIndex<T extends Document>(
   collection: Collection<T>,
   spec: IndexSpecification,
-  options?: CreateIndexesOptions
+  options?: CreateIndexesOptions,
 ): Promise<void> {
   const key = `${collection.collectionName}:${JSON.stringify(spec)}`;
   if (ensuredIndexes.has(key)) return;

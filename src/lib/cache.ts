@@ -21,7 +21,7 @@ async function cacheCollection() {
 export async function cached<T>(
   key: string,
   ttlSeconds: number,
-  loader: () => Promise<T>
+  loader: () => Promise<T>,
 ): Promise<T> {
   const collection = await cacheCollection();
   if (!collection) return loader();
@@ -39,7 +39,7 @@ export async function cached<T>(
     await collection.updateOne(
       { _id: key },
       { $set: { value, expiresAt: new Date(Date.now() + ttlSeconds * 1000) } },
-      { upsert: true }
+      { upsert: true },
     );
   } catch {
     // A failed cache write must never fail the request.
@@ -55,7 +55,7 @@ export async function cached<T>(
 export async function cachedMany<T>(
   keys: string[],
   ttlSeconds: number,
-  loader: (key: string) => Promise<T | undefined>
+  loader: (key: string) => Promise<T | undefined>,
 ): Promise<(T | undefined)[]> {
   const collection = await cacheCollection();
   if (!collection) return Promise.all(keys.map(loader));
@@ -88,7 +88,7 @@ export async function cachedMany<T>(
         writes.map(({ key, value }) => ({
           updateOne: { filter: { _id: key }, update: { $set: { value, expiresAt } }, upsert: true },
         })),
-        { ordered: false }
+        { ordered: false },
       )
       .catch(() => undefined);
   }

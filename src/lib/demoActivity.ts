@@ -71,11 +71,14 @@ export async function seedDemoActivity(hours = 24, total = 320): Promise<number>
   for (let i = 0; i < rows.length; i += 100) {
     const chunk = rows.slice(i, i + 100);
     const values = chunk
-      .map((_, j) => `($${j * 6 + 1}, $${j * 6 + 2}, $${j * 6 + 3}, $${j * 6 + 4}, $${j * 6 + 5}, $${j * 6 + 6}, 'demo')`)
+      .map(
+        (_, j) =>
+          `($${j * 6 + 1}, $${j * 6 + 2}, $${j * 6 + 3}, $${j * 6 + 4}, $${j * 6 + 5}, $${j * 6 + 6}, 'demo')`,
+      )
       .join(", ");
     await pool.query(
       `INSERT INTO events (time, kind, media_type, tmdb_id, title, query, source) VALUES ${values}`,
-      chunk.flat()
+      chunk.flat(),
     );
   }
 

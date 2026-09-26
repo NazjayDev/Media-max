@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   if (vibe.length > MAX_VIBE_LENGTH) {
     return NextResponse.json(
       { error: `Vibe must be ${MAX_VIBE_LENGTH} characters or fewer` },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (!process.env.GEMINI_API_KEY) {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         } catch {
           return null;
         }
-      })
+      }),
     );
 
     const results = looked.filter((r): r is Recommendation => r !== null);
@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Vibe search failed:", error);
     if (error instanceof ApiError && (error.status === 429 || error.status === 503)) {
-      return NextResponse.json({ error: "Vibe search is busy, try again shortly" }, { status: 429 });
+      return NextResponse.json(
+        { error: "Vibe search is busy, try again shortly" },
+        { status: 429 },
+      );
     }
     return NextResponse.json({ error: "Failed to run vibe search" }, { status: 502 });
   }

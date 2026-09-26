@@ -39,15 +39,15 @@ Next.js route handlers (src/app/api/*)
 
 Key modules in `src/lib`:
 
-| Module | Purpose |
-| --- | --- |
-| `recommend.ts` | Vibe, title and personal recommendations (retrieve, refine, hydrate) |
-| `catalog.ts`, `embeddings.ts` | Atlas Vector Search queries and Gemini embeddings |
-| `refine.ts` | Reranks candidates with a hedged chain of models |
-| `tmdb.ts`, `ratings.ts` | TMDB client and rating lookups |
-| `cache.ts` | Read-through cache in MongoDB with TTL |
-| `trending.ts`, `events.ts`, `tiger.ts` | Anonymous event log and trending queries |
-| `comments.ts`, `profile.ts` | Discussion and usernames |
+| Module                                 | Purpose                                                              |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `recommend.ts`                         | Vibe, title and personal recommendations (retrieve, refine, hydrate) |
+| `catalog.ts`, `embeddings.ts`          | Atlas Vector Search queries and Gemini embeddings                    |
+| `refine.ts`                            | Reranks candidates with a hedged chain of models                     |
+| `tmdb.ts`, `ratings.ts`                | TMDB client and rating lookups                                       |
+| `cache.ts`                             | Read-through cache in MongoDB with TTL                               |
+| `trending.ts`, `events.ts`, `tiger.ts` | Anonymous event log and trending queries                             |
+| `comments.ts`, `profile.ts`            | Discussion and usernames                                             |
 
 ## Getting started
 

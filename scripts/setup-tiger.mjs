@@ -22,7 +22,7 @@ async function step(label, sql, { optional = false } = {}) {
 }
 
 const version = await client.query(
-  "SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'"
+  "SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'",
 );
 console.log("timescaledb:", version.rows[0]?.extversion ?? "NOT INSTALLED");
 
@@ -36,17 +36,17 @@ await step(
      title      text,
      query      text,
      source     text        NOT NULL DEFAULT 'app'
-   )`
+   )`,
 );
 
 await step(
   "events hypertable (1-day chunks)",
-  `SELECT create_hypertable('events', 'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE)`
+  `SELECT create_hypertable('events', 'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE)`,
 );
 
 await step(
   "events index",
-  `CREATE INDEX IF NOT EXISTS events_title_time ON events (media_type, tmdb_id, time DESC)`
+  `CREATE INDEX IF NOT EXISTS events_title_time ON events (media_type, tmdb_id, time DESC)`,
 );
 
 // Continuous aggregates: hourly rollups that Timescale keeps up to date incrementally.
@@ -64,7 +64,7 @@ await step(
    FROM events
    WHERE tmdb_id IS NOT NULL
    GROUP BY bucket, source, media_type, tmdb_id
-   WITH NO DATA`
+   WITH NO DATA`,
 );
 
 await step(
@@ -78,7 +78,7 @@ await step(
    FROM events
    WHERE kind = 'vibe' AND query IS NOT NULL
    GROUP BY bucket, source, query
-   WITH NO DATA`
+   WITH NO DATA`,
 );
 
 await step(
@@ -90,7 +90,7 @@ await step(
           count(*) AS events
    FROM events
    GROUP BY bucket, source
-   WITH NO DATA`
+   WITH NO DATA`,
 );
 
 // Real-time aggregation: recent, not-yet-materialized rows are included in reads.
@@ -98,7 +98,7 @@ for (const view of ["title_activity_hourly", "query_activity_hourly", "total_act
   await step(
     `${view} real-time`,
     `ALTER MATERIALIZED VIEW ${view} SET (timescaledb.materialized_only = false)`,
-    { optional: true }
+    { optional: true },
   );
   await step(
     `${view} refresh policy`,
@@ -107,23 +107,27 @@ for (const view of ["title_activity_hourly", "query_activity_hourly", "total_act
        end_offset => INTERVAL '1 hour',
        schedule_interval => INTERVAL '15 minutes',
        if_not_exists => TRUE)`,
-    { optional: true }
+    { optional: true },
   );
 }
 
 await step(
   "raw events retention (90 days)",
   `SELECT add_retention_policy('events', INTERVAL '90 days', if_not_exists => TRUE)`,
-  { optional: true }
+  { optional: true },
 );
 
-await step("compression settings", `ALTER TABLE events SET (timescaledb.compress, timescaledb.compress_orderby = 'time DESC')`, {
-  optional: true,
-});
+await step(
+  "compression settings",
+  `ALTER TABLE events SET (timescaledb.compress, timescaledb.compress_orderby = 'time DESC')`,
+  {
+    optional: true,
+  },
+);
 await step(
   "compress chunks older than 7 days",
   `SELECT add_compression_policy('events', INTERVAL '7 days', if_not_exists => TRUE)`,
-  { optional: true }
+  { optional: true },
 );
 
 await client.end();

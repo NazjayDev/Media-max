@@ -1,13 +1,13 @@
 import { ensureIndex, getDb } from "@/lib/mongodb";
 
-export interface ProfileDoc {
+interface ProfileDoc {
   _id: string; // userId
   username: string;
   usernameLower: string;
   updatedAt: Date;
 }
 
-export const USERNAME_PATTERN = /^[A-Za-z0-9_-]{3,20}$/;
+const USERNAME_PATTERN = /^[A-Za-z0-9_-]{3,20}$/;
 
 const RESERVED = new Set([
   "admin",
@@ -27,7 +27,7 @@ const RESERVED = new Set([
   "media_max",
 ]);
 
-export type UsernameCheck = { ok: true; username: string } | { ok: false; error: string };
+type UsernameCheck = { ok: true; username: string } | { ok: false; error: string };
 
 export function validateUsername(raw: unknown): UsernameCheck {
   const username = typeof raw === "string" ? raw.trim() : "";

@@ -53,7 +53,10 @@ export default function SearchBar({ onSearch, disabled, mode, onModeChange }: Se
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:gap-2"
+      >
         <input
           type="text"
           value={value}

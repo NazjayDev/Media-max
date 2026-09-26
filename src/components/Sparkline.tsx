@@ -5,7 +5,9 @@ export default function Sparkline({ values, label }: { values: number[]; label: 
   const height = 28;
   const max = Math.max(...values, 1);
   const step = width / (values.length - 1);
-  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - 2 - (v / max) * (height - 4)).toFixed(1)}`);
+  const points = values.map(
+    (v, i) => `${(i * step).toFixed(1)},${(height - 2 - (v / max) * (height - 4)).toFixed(1)}`,
+  );
   const area = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
