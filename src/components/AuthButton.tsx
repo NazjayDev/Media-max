@@ -28,11 +28,11 @@ export default function AuthButton() {
   return (
     <div className="flex items-center gap-2 text-sm sm:gap-3">
       <Link
-        href="/watchlist"
+        href="/dashboard"
         className="whitespace-nowrap rounded-full border border-border bg-surface px-3 py-2 font-medium transition hover:border-accent-from sm:px-4"
       >
-        <span className="sm:hidden">Watchlist</span>
-        <span className="hidden sm:inline">My watchlist</span>
+        <span className="sm:hidden">Dashboard</span>
+        <span className="hidden sm:inline">My dashboard</span>
         {items.length > 0 ? ` (${items.length})` : ""}
       </Link>
       {session.user.image && (

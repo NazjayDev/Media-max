@@ -12,6 +12,7 @@ interface WatchlistContextValue {
   toggle: (item: Recommendation) => Promise<void>;
   setStatus: (item: Recommendation, status: WatchStatus) => Promise<void>;
   setRating: (item: Recommendation, rating: number | null) => Promise<void>;
+  setFavorite: (item: Recommendation, favorite: boolean) => Promise<void>;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue | null>(null);
@@ -23,6 +24,14 @@ export function useWatchlist() {
   }
   return ctx;
 }
+
+const freshEntry = (item: Recommendation): WatchlistEntry => ({
+  ...item,
+  status: "want",
+  userRating: null,
+  favorite: false,
+  statusUpdatedAt: new Date().toISOString(),
+});
 
 const keyOf = (item: Pick<Recommendation, "mediaType" | "id">) => `${item.mediaType}:${item.id}`;
 
@@ -69,7 +78,7 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
       setItems((prev) =>
         alreadySaved
           ? prev.filter((i) => keyOf(i) !== keyOf(item))
-          : [{ ...item, status: "want" as const, userRating: null }, ...prev]
+          : [freshEntry(item), ...prev]
       );
 
       try {
@@ -86,7 +95,7 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
       } catch {
         setItems((prev) =>
           alreadySaved
-            ? [{ ...item, status: "want" as const, userRating: null }, ...prev]
+            ? [freshEntry(item), ...prev]
             : prev.filter((i) => keyOf(i) !== keyOf(item))
         );
       }
@@ -95,9 +104,22 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
   );
 
   const patch = useCallback(
-    async (item: Recommendation, change: { status?: WatchStatus; userRating?: number | null }) => {
+    async (
+      item: Recommendation,
+      change: { status?: WatchStatus; userRating?: number | null; favorite?: boolean }
+    ) => {
       const before = items;
-      setItems((prev) => prev.map((i) => (keyOf(i) === keyOf(item) ? { ...i, ...change } : i)));
+      setItems((prev) =>
+        prev.map((i) =>
+          keyOf(i) === keyOf(item)
+            ? {
+                ...i,
+                ...change,
+                ...(change.status ? { statusUpdatedAt: new Date().toISOString() } : {}),
+              }
+            : i
+        )
+      );
       try {
         const res = await fetch("/api/watchlist", {
           method: "PATCH",
@@ -121,9 +143,14 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
     [patch]
   );
 
+  const setFavorite = useCallback(
+    (item: Recommendation, favorite: boolean) => patch(item, { favorite }),
+    [patch]
+  );
+
   const value = useMemo(
-    () => ({ items, loading, signedIn, isSaved, toggle, setStatus, setRating }),
-    [items, loading, signedIn, isSaved, toggle, setStatus, setRating]
+    () => ({ items, loading, signedIn, isSaved, toggle, setStatus, setRating, setFavorite }),
+    [items, loading, signedIn, isSaved, toggle, setStatus, setRating, setFavorite]
   );
 
   return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;

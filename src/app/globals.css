@@ -58,3 +58,19 @@ body {
     animation: none;
   }
 }
+
+/* Slim, theme-friendly scrollbars for the dashboard's horizontal rows. */
+.scroll-row {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.45) transparent;
+}
+.scroll-row::-webkit-scrollbar {
+  height: 8px;
+}
+.scroll-row::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.45);
+  border-radius: 999px;
+}
+.scroll-row::-webkit-scrollbar-track {
+  background: transparent;
+}

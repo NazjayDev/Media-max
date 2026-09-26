@@ -36,5 +36,11 @@ export interface Recommendation {
 
 export interface WatchlistEntry extends Recommendation {
   status: WatchStatus;
+  /** 0.5 to 5 in half-star steps, or null when unrated. */
   userRating: number | null;
+  favorite: boolean;
+  genres?: string[];
+  addedAt?: string;
+  /** When the status last changed; used to find what you watched or started most recently. */
+  statusUpdatedAt?: string;
 }

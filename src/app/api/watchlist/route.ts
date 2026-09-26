@@ -12,6 +12,8 @@ interface WatchlistDoc {
   addedAt: Date;
   status?: WatchStatus;
   userRating?: number | null;
+  favorite?: boolean;
+  statusUpdatedAt?: Date;
 }
 
 const STATUSES: WatchStatus[] = ["want", "watching", "watched"];
@@ -87,10 +89,23 @@ export async function GET() {
     .limit(MAX_ITEMS_PER_USER)
     .toArray();
 
+  const db = await getDb();
+  const catalog = db
+    ? await db
+        .collection<{ _id: string; genres: string[] }>("titles")
+        .find({ _id: { $in: docs.map((d) => d.key) } }, { projection: { genres: 1 } })
+        .toArray()
+    : [];
+  const genresByKey = new Map(catalog.map((c) => [c._id, c.genres]));
+
   const entries: WatchlistEntry[] = docs.map((d) => ({
     ...d.item,
     status: d.status ?? "want",
     userRating: d.userRating ?? null,
+    favorite: d.favorite ?? false,
+    genres: genresByKey.get(d.key) ?? [],
+    addedAt: d.addedAt.toISOString(),
+    statusUpdatedAt: (d.statusUpdatedAt ?? d.addedAt).toISOString(),
   }));
   return NextResponse.json({ results: await attachRatings(entries) });
 }
@@ -113,7 +128,7 @@ export async function POST(request: NextRequest) {
     { userId: ctx.userId, key: itemKey(item.mediaType, item.id) },
     {
       $set: { item },
-      $setOnInsert: { addedAt: new Date(), status: "want", userRating: null },
+      $setOnInsert: { addedAt: new Date(), status: "want", userRating: null, favorite: false },
     },
     { upsert: true }
   );
@@ -150,6 +165,7 @@ export async function PATCH(request: NextRequest) {
     id?: number;
     status?: string;
     userRating?: number | null;
+    favorite?: unknown;
   } | null;
 
   if (
@@ -160,19 +176,26 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid item" }, { status: 400 });
   }
 
-  const update: Partial<Pick<WatchlistDoc, "status" | "userRating">> = {};
+  const update: Partial<Pick<WatchlistDoc, "status" | "userRating" | "favorite" | "statusUpdatedAt">> = {};
   if (body.status !== undefined) {
     if (!STATUSES.includes(body.status as WatchStatus)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
     update.status = body.status as WatchStatus;
+    update.statusUpdatedAt = new Date();
   }
   if (body.userRating !== undefined) {
     const r = body.userRating;
-    if (r !== null && !(Number.isInteger(r) && r >= 1 && r <= 5)) {
+    if (r !== null && !(typeof r === "number" && r >= 0.5 && r <= 5 && (r * 2) % 1 === 0)) {
       return NextResponse.json({ error: "Invalid rating" }, { status: 400 });
     }
     update.userRating = r;
+  }
+  if (body.favorite !== undefined) {
+    if (typeof body.favorite !== "boolean") {
+      return NextResponse.json({ error: "Invalid favorite" }, { status: 400 });
+    }
+    update.favorite = body.favorite;
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
