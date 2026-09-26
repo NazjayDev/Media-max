@@ -328,13 +328,13 @@ export default function Home() {
 
       <h1 className="sr-only">Media Max: select your next watch</h1>
       <Image
-        src="/brand/mediamax-wordmark.png"
+        src="/brand/mediamax-strip.png"
         alt="Media Max"
-        width={1600}
-        height={433}
+        width={1800}
+        height={249}
         priority
         unoptimized
-        className="h-auto w-[min(660px,92vw)]"
+        className="h-auto w-[min(820px,94vw)]"
       />
       {/* The tagline is real text (not part of the logo image) so it stays sharp and readable. */}
       <p className="mt-3 text-center font-[family-name:var(--font-display)] text-xl font-extrabold tracking-wide sm:text-2xl">
