@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/mongodb";
 import { attachRatings } from "@/lib/ratings";
+import { logEvent } from "@/lib/events";
 import type { Recommendation, StreamingProvider, WatchStatus, WatchlistEntry } from "@/types/media";
 
 interface WatchlistDoc {
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Watchlist is full" }, { status: 400 });
   }
 
-  await ctx.collection.updateOne(
+  const saved = await ctx.collection.updateOne(
     { userId: ctx.userId, key: itemKey(item.mediaType, item.id) },
     {
       $set: { item },
@@ -116,6 +117,12 @@ export async function POST(request: NextRequest) {
     },
     { upsert: true }
   );
+
+  if (saved.upsertedCount > 0) {
+    after(() =>
+      logEvent({ kind: "save", mediaType: item.mediaType, tmdbId: item.id, title: item.title })
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

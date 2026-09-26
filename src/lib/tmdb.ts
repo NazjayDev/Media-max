@@ -203,3 +203,31 @@ export async function getRecommendationsWithProviders(
 
   return enriched;
 }
+
+interface TmdbTitleDetails {
+  title?: string;
+  name?: string;
+  overview: string;
+  poster_path: string | null;
+}
+
+/** Card data (poster, synopsis, streaming providers) for a specific TMDB id. */
+export async function getTitleCard(
+  mediaType: MediaType,
+  id: number,
+  region: string = DEFAULT_REGION
+): Promise<Recommendation | null> {
+  try {
+    const d = await tmdbFetch<TmdbTitleDetails>(`/${mediaType}/${id}`);
+    return {
+      id,
+      mediaType,
+      title: d.title ?? d.name ?? "Untitled",
+      posterPath: d.poster_path ? `${TMDB_IMAGE_BASE_URL}/w342${d.poster_path}` : null,
+      synopsis: d.overview,
+      streamingProviders: await getWatchProviders(mediaType, id, region),
+    };
+  } catch {
+    return null;
+  }
+}

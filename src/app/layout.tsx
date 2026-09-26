@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import AuthButton from "@/components/AuthButton";
+import Link from "next/link";
 import VoiceToggle from "@/components/VoiceToggle";
 
 const geistSans = Geist({
@@ -29,6 +30,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <Providers>
           <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-end gap-3 px-4 py-4 sm:px-8">
+            <Link
+              href="/trending"
+              className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"
+            >
+              Trending
+            </Link>
             <VoiceToggle />
             <AuthButton />
           </nav>

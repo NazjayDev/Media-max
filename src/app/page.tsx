@@ -5,6 +5,7 @@ import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import NarrateButton from "@/components/NarrateButton";
+import TrendingStrip from "@/components/TrendingStrip";
 import { useVoiceReplies } from "@/lib/voiceSetting";
 import type { Recommendation, SearchResult } from "@/types/media";
 
@@ -161,6 +162,15 @@ export default function Home() {
       </header>
 
       <main className="mt-10 w-full max-w-5xl sm:mt-14" aria-live="polite">
+        {status === "idle" && (
+          <TrendingStrip
+            onPickVibe={(query) => {
+              setMode("vibe");
+              void handleVibeSearch(query);
+            }}
+          />
+        )}
+
         {status === "loading" && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (

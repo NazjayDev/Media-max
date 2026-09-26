@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { searchTitle } from "@/lib/tmdb";
+import { logEvent } from "@/lib/events";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("query");
@@ -15,6 +16,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No results found" }, { status: 404 });
     }
 
+    after(() =>
+      logEvent({ kind: "search", mediaType: result.mediaType, tmdbId: result.id, title: result.title })
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error("TMDB search failed:", error);

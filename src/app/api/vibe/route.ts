@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { ApiError } from "@google/genai";
 import { suggestByVibe } from "@/lib/vibe";
 import { vibeRecommendations } from "@/lib/recommend";
 import { attachRatings } from "@/lib/ratings";
+import { logEvent } from "@/lib/events";
 import { lookupRecommendation } from "@/lib/tmdb";
 import type { Recommendation } from "@/types/media";
 
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "Vibe search is not configured" }, { status: 503 });
   }
+
+  after(() => logEvent({ kind: "vibe", query: vibe }));
 
   try {
     try {
