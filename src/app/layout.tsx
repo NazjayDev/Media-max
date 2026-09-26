@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import FeedbackButton from "@/components/FeedbackButton";
+import ServiceWorker from "@/components/ServiceWorker";
 import SiteHeader from "@/components/SiteHeader";
 
 const geistSans = Geist({
@@ -21,7 +22,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#0f0c0a",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
+  applicationName: "Media Max",
+  // Lets iPhones open the site full-screen from the home screen with a dark status bar.
+  appleWebApp: { capable: true, title: "Media Max", statusBarStyle: "black" },
+  formatDetection: { telephone: false },
   metadataBase: new URL("https://mediamax.select"),
   title: "Media Max: select your next watch",
   description:
@@ -47,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteHeader />
           {children}
           <FeedbackButton />
+          <ServiceWorker />
         </Providers>
       </body>
     </html>

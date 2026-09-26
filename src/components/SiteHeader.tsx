@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useWatchlist } from "@/components/Providers";
 import { OPEN_FEEDBACK_EVENT } from "@/components/FeedbackButton";
+import InstallApp from "@/components/InstallApp";
 import VoiceToggle from "@/components/VoiceToggle";
 
 const LINKS = [
@@ -151,6 +152,7 @@ export default function SiteHeader() {
             </ul>
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
               <VoiceToggle />
+              <InstallApp />
               <button
                 type="button"
                 onClick={() => {
