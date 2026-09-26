@@ -147,7 +147,7 @@ export default function Home() {
           Media Max
         </h1>
         <p className="max-w-md text-sm text-muted sm:text-base">
-          Find your next watch. Search a movie, show, or anime and get recommendations
+          Select your next watch. Search a movie, show, or anime and get recommendations
           with the same vibe — plus exactly where to stream them.
         </p>
 
@@ -222,6 +222,10 @@ export default function Home() {
             TMDB
           </a>{" "}
           API but is not endorsed or certified by TMDB.
+        </p>
+        <p className="mb-1">
+          <span className="font-semibold text-foreground">mediamax.select</span>: a{" "}
+          <span className="font-mono">.select</span> domain, because the whole point is choosing well.
         </p>
         <p>
           Streaming availability data provided by{" "}
