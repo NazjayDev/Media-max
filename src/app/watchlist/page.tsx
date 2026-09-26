@@ -67,6 +67,9 @@ export default function WatchlistPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 pb-16 pt-24 sm:px-8">
+      <Link href="/" className="mb-4 text-sm text-muted hover:text-foreground">
+        &larr; Back to home
+      </Link>
       <h1 className="bg-gradient-to-r from-accent-from to-accent-to bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
         My watchlist
       </h1>

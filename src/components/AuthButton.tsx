@@ -26,12 +26,14 @@ export default function AuthButton() {
   }
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-2 text-sm sm:gap-3">
       <Link
         href="/watchlist"
-        className="rounded-full border border-border bg-surface px-4 py-2 font-medium transition hover:border-accent-from"
+        className="whitespace-nowrap rounded-full border border-border bg-surface px-3 py-2 font-medium transition hover:border-accent-from sm:px-4"
       >
-        My watchlist{items.length > 0 ? ` (${items.length})` : ""}
+        <span className="sm:hidden">Watchlist</span>
+        <span className="hidden sm:inline">My watchlist</span>
+        {items.length > 0 ? ` (${items.length})` : ""}
       </Link>
       {session.user.image && (
         <Image
@@ -46,7 +48,7 @@ export default function AuthButton() {
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/" })}
-        className="text-muted underline-offset-2 hover:text-foreground hover:underline"
+        className="whitespace-nowrap text-muted underline-offset-2 hover:text-foreground hover:underline"
       >
         Sign out
       </button>

@@ -38,15 +38,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Providers>
-          <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-end gap-3 px-4 py-4 sm:px-8">
+          <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-8">
             <Link
-              href="/trending"
-              className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"
+              href="/"
+              aria-label="Media Max home"
+              className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-sm font-extrabold transition hover:border-accent-from"
             >
-              Trending
+              <span aria-hidden>&#8962;</span>
+              <span className="hidden bg-gradient-to-r from-accent-from to-accent-to bg-clip-text text-transparent sm:inline">
+                Media Max
+              </span>
             </Link>
-            <VoiceToggle />
-            <AuthButton />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/trending"
+                className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"
+              >
+                Trending
+              </Link>
+              <VoiceToggle />
+              <AuthButton />
+            </div>
           </nav>
           {children}
         </Providers>
