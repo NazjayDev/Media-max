@@ -13,6 +13,10 @@ export interface SearchResult {
   posterPath: string | null;
 }
 
+export interface SearchSuggestion extends SearchResult {
+  year: number | null;
+}
+
 export interface Ratings {
   tmdb?: number;
   imdb?: string;

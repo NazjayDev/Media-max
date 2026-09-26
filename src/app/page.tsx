@@ -8,7 +8,7 @@ import SkeletonCard from "@/components/SkeletonCard";
 import NarrateButton from "@/components/NarrateButton";
 import TrendingStrip from "@/components/TrendingStrip";
 import { useVoiceReplies } from "@/lib/voiceSetting";
-import type { Recommendation, SearchResult } from "@/types/media";
+import type { Recommendation, SearchResult, SearchSuggestion } from "@/types/media";
 
 type Status = "idle" | "loading" | "error" | "success";
 
@@ -88,19 +88,28 @@ export default function Home() {
       return handleVibeSearch(query, viaVoice);
     }
 
+    return handleTitleSearch(`query=${encodeURIComponent(query)}`, query, viaVoice);
+  }
+
+  // A title picked from the dropdown is looked up by its exact id rather than by its name.
+  function handleSelect(title: SearchSuggestion) {
+    return handleTitleSearch(`mediaType=${title.mediaType}&id=${title.id}`, title.title, false);
+  }
+
+  async function handleTitleSearch(lookup: string, label: string, viaVoice: boolean) {
     setStatus("loading");
     setErrorMessage("");
     setRecommendations([]);
     setMatchedTitle(null);
 
     try {
-      const searchRes = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+      const searchRes = await fetch(`/api/search?${lookup}`);
       const searchData = await searchRes.json();
 
       if (!searchRes.ok) {
         setErrorMessage(
           searchRes.status === 404
-            ? `No matches found for "${query}". Try a different title.`
+            ? `No matches found for "${label}". Try a different title.`
             : "Something went wrong searching for that title. Please try again.",
         );
         setStatus("error");
@@ -143,7 +152,7 @@ export default function Home() {
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b from-accent-from/15 via-accent-to/5 to-transparent"
       />
 
-      <header className="animate-fade-up flex w-full max-w-5xl flex-col items-center gap-3 text-center">
+      <header className="animate-fade-up relative z-20 flex w-full max-w-5xl flex-col items-center gap-3 text-center">
         <h1 className="bg-gradient-to-r from-accent-from to-accent-to bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-6xl">
           Media Max
         </h1>
@@ -155,6 +164,7 @@ export default function Home() {
         <div className="mt-4 flex w-full justify-center sm:mt-6">
           <SearchBar
             onSearch={handleSearch}
+            onSelect={handleSelect}
             disabled={status === "loading"}
             mode={mode}
             onModeChange={setMode}

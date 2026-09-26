@@ -1,6 +1,12 @@
 import { cached, cachedMany } from "@/lib/cache";
 import { WATCH_REGION } from "@/lib/config";
-import type { MediaType, Recommendation, SearchResult, StreamingProvider } from "@/types/media";
+import type {
+  MediaType,
+  Recommendation,
+  SearchResult,
+  SearchSuggestion,
+  StreamingProvider,
+} from "@/types/media";
 
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
@@ -55,41 +61,69 @@ interface TmdbMultiSearchResult {
   media_type: "movie" | "tv" | "person";
   title?: string;
   name?: string;
+  release_date?: string;
+  first_air_date?: string;
   poster_path: string | null;
   popularity: number;
 }
 
-interface TmdbMultiSearchResponse {
-  results: TmdbMultiSearchResult[];
-}
+const normalizeTitle = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N} ]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
- * Searches TMDB for a movie/TV title and returns the single best match.
- * TMDB's /search/multi also returns "person" hits, which we filter out.
+ * Movie and TV hits for a query, best first. A title that matches what was typed exactly beats a
+ * more popular longer title ("Tron" over "Tron: Ares"), then titles starting with the query, then
+ * popularity. TMDB's /search/multi also returns "person" hits, which are filtered out.
  */
-export async function searchTitle(query: string): Promise<SearchResult | null> {
-  const data = await tmdbFetch<TmdbMultiSearchResponse>("/search/multi", {
+async function searchTitles(query: string) {
+  const data = await tmdbFetch<{ results: TmdbMultiSearchResult[] }>("/search/multi", {
     query,
     include_adult: "false",
   });
+  const wanted = normalizeTitle(query);
+  const rank = (name: string) => {
+    const t = normalizeTitle(name);
+    return t === wanted ? 0 : t.startsWith(wanted) ? 1 : 2;
+  };
 
-  const candidates = data.results.filter(
-    (r): r is TmdbMultiSearchResult & { media_type: "movie" | "tv" } =>
-      r.media_type === "movie" || r.media_type === "tv",
-  );
+  return data.results
+    .filter(
+      (r): r is TmdbMultiSearchResult & { media_type: "movie" | "tv" } =>
+        r.media_type === "movie" || r.media_type === "tv",
+    )
+    .map((r) => ({ ...r, name: r.title ?? r.name ?? "Untitled" }))
+    .sort((a, b) => rank(a.name) - rank(b.name) || b.popularity - a.popularity);
+}
 
-  if (candidates.length === 0) {
-    return null;
-  }
+const posterUrl = (path: string | null, size: string) =>
+  path ? `${TMDB_IMAGE_BASE_URL}/${size}${path}` : null;
 
-  const best = candidates.sort((a, b) => b.popularity - a.popularity)[0];
-
+/** Searches TMDB for a movie/TV title and returns the single best match. */
+export async function searchTitle(query: string): Promise<SearchResult | null> {
+  const best = (await searchTitles(query))[0];
+  if (!best) return null;
   return {
     id: best.id,
     mediaType: best.media_type,
-    title: best.title ?? best.name ?? "Untitled",
-    posterPath: best.poster_path ? `${TMDB_IMAGE_BASE_URL}/w342${best.poster_path}` : null,
+    title: best.name,
+    posterPath: posterUrl(best.poster_path, "w342"),
   };
+}
+
+/** Up to `limit` suggestions for a search-as-you-type dropdown. */
+export async function suggestTitles(query: string, limit = 6): Promise<SearchSuggestion[]> {
+  return (await searchTitles(query)).slice(0, limit).map((r) => ({
+    id: r.id,
+    mediaType: r.media_type,
+    title: r.name,
+    posterPath: posterUrl(r.poster_path, "w92"),
+    year: Number((r.release_date ?? r.first_air_date ?? "").slice(0, 4)) || null,
+  }));
 }
 
 interface TmdbRecommendationResult {
