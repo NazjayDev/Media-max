@@ -7,16 +7,21 @@ import { embedQuery } from "@/lib/embeddings";
 import { generateJsonObject } from "@/lib/modelChain";
 import { fromCatalog, hydrate, hydrateUnrefined } from "@/lib/recommend";
 import { validPicks, type Candidate } from "@/lib/refine";
-import { searchTitle } from "@/lib/tmdb";
-import type { Recommendation } from "@/types/media";
+import { getTitleCard, searchTitle } from "@/lib/tmdb";
+import type { MediaType, Recommendation } from "@/types/media";
 
 export const MAX_PEOPLE = 4;
 export const MAX_TITLES_EACH = 4;
 
+/** A favorite: an exact title picked from suggestions, or free text we look up by name. */
+export type Favorite = string | { mediaType: MediaType; id: number; title: string };
+
 export interface Person {
   name: string;
-  titles: string[];
+  titles: Favorite[];
 }
+
+const favoriteLabel = (f: Favorite) => (typeof f === "string" ? f : f.title);
 
 export interface GroupPick extends Recommendation {
   /** How well this pick fits each person, 0-100, in the same order as `people`. */
@@ -59,14 +64,21 @@ async function tasteOf(person: Person) {
   const vectors: number[][] = [];
 
   await Promise.all(
-    person.titles.map(async (text) => {
-      const hit = await searchTitle(text).catch(() => null);
-      if (!hit) return void unmatched.push(text);
+    person.titles.map(async (favorite) => {
+      const label = favoriteLabel(favorite);
+      const hit =
+        typeof favorite === "string" ? await searchTitle(favorite).catch(() => null) : favorite;
+      if (!hit) return void unmatched.push(label);
 
       const key = `${hit.mediaType}:${hit.id}`;
       const entry = await getCatalogEntry(key);
-      const vector = entry?.embedding ?? (await embedQuery(hit.title).catch(() => null));
-      if (!vector) return void unmatched.push(text);
+      let vector = entry?.embedding;
+      if (!vector) {
+        // Not in the catalog: embed its title and synopsis so the taste is still meaningful.
+        const card = await getTitleCard(hit.mediaType, hit.id);
+        vector = await embedQuery(`${hit.title}. ${card?.synopsis ?? ""}`).catch(() => undefined);
+      }
+      if (!vector) return void unmatched.push(label);
 
       matched.push(hit.title);
       keys.push(key);
@@ -125,7 +137,12 @@ export async function groupRecommendations(people: Person[]): Promise<GroupResul
   const cacheKey = `together2:${createHash("sha1")
     .update(
       JSON.stringify(
-        people.map((p) => [p.name.toLowerCase(), p.titles.map((t) => t.toLowerCase()).sort()]),
+        people.map((p) => [
+          p.name.toLowerCase(),
+          p.titles
+            .map((t) => (typeof t === "string" ? t.toLowerCase() : `${t.mediaType}:${t.id}`))
+            .sort(),
+        ]),
       ),
     )
     .digest("hex")}`;

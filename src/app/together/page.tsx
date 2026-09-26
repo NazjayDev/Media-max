@@ -4,12 +4,24 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecommendationCard from "@/components/RecommendationCard";
-import type { Recommendation } from "@/types/media";
+import TitleCombobox from "@/components/TitleCombobox";
+import type { MediaType, Recommendation } from "@/types/media";
+
+/** A favorite in the form: an exact title from the dropdown, or typed text looked up by name. */
+interface Pick {
+  title: string;
+  mediaType?: MediaType;
+  id?: number;
+  year?: number | null;
+}
 
 interface Row {
   name: string;
-  titles: string;
+  picks: Pick[];
+  draft: string;
 }
+
+const MAX_PICKS = 4;
 
 interface Result {
   people: { name: string; matched: string[]; unmatched: string[] }[];
@@ -17,23 +29,27 @@ interface Result {
   degraded: boolean;
 }
 
+const asRow = (name: string, titles: string[]): Row => ({
+  name,
+  picks: titles.map((title) => ({ title })),
+  draft: "",
+});
 const EXAMPLE: Row[] = [
-  { name: "Alex", titles: "Inception, Interstellar, Dune" },
-  { name: "Sam", titles: "Spirited Away, Your Name, Howl's Moving Castle" },
-  { name: "Jo", titles: "Breaking Bad, Fargo, Better Call Saul" },
+  asRow("Alex", ["Inception", "Interstellar", "Dune"]),
+  asRow("Sam", ["Spirited Away", "Your Name", "Howl's Moving Castle"]),
+  asRow("Jo", ["Breaking Bad", "Fargo", "Better Call Saul"]),
 ];
-const BLANK: Row[] = [
-  { name: "", titles: "" },
-  { name: "", titles: "" },
-];
+const BLANK: Row[] = [asRow("", []), asRow("", [])];
 const DOT_COLORS = ["bg-violet-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500"];
 
-const splitTitles = (text: string) =>
-  text
-    .split(/[,;\n]/)
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .slice(0, 4);
+type SharedFavorite =
+  string | { mediaType: MediaType; id: number; title: string; year?: number | null };
+
+/** What goes over the wire and into the shareable link: exact ids where known, text otherwise. */
+const toFavorite = (p: Pick): SharedFavorite =>
+  p.mediaType && p.id
+    ? { mediaType: p.mediaType, id: p.id, title: p.title, year: p.year }
+    : p.title;
 
 function parseShared(raw: string | null): Row[] | null {
   if (!raw) return null;
@@ -41,7 +57,10 @@ function parseShared(raw: string | null): Row[] | null {
     const parsed = JSON.parse(raw) as { name?: unknown; titles?: unknown }[];
     const rows = parsed.slice(0, 4).map((p) => ({
       name: String(p.name ?? ""),
-      titles: Array.isArray(p.titles) ? p.titles.join(", ") : "",
+      picks: (Array.isArray(p.titles) ? (p.titles as SharedFavorite[]) : [])
+        .slice(0, MAX_PICKS)
+        .map((t): Pick => (typeof t === "string" ? { title: t } : t)),
+      draft: "",
     }));
     return rows.length >= 2 ? rows : null;
   } catch {
@@ -65,7 +84,10 @@ function TogetherInner() {
     async (input: Row[]) => {
       const people = input.map((r, i) => ({
         name: r.name.trim() || `Person ${i + 1}`,
-        titles: splitTitles(r.titles),
+        // Anything still typed in the box counts as a favorite too.
+        titles: [...r.picks, ...(r.draft.trim() ? [{ title: r.draft.trim() }] : [])]
+          .slice(0, MAX_PICKS)
+          .map(toFavorite),
       }));
       if (people.length < 2 || people.some((p) => p.titles.length === 0)) {
         setError("Give each person at least one favorite title.");
@@ -139,9 +161,9 @@ function TogetherInner() {
         {rows.map((row, i) => (
           <div
             key={i}
-            className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3 sm:flex-row sm:items-center"
+            className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3 sm:flex-row sm:items-start"
           >
-            <div className="flex items-center gap-2 sm:w-40">
+            <div className="flex items-center gap-2 sm:w-40 sm:py-2">
               <span aria-hidden className={`h-3 w-3 shrink-0 rounded-full ${DOT_COLORS[i]}`} />
               <input
                 value={row.name}
@@ -152,13 +174,61 @@ function TogetherInner() {
                 className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-muted"
               />
             </div>
-            <input
-              value={row.titles}
-              onChange={(e) => update(i, { titles: e.target.value })}
-              placeholder="Favorites, separated by commas (up to 4)"
-              aria-label={`Favorites of person ${i + 1}`}
-              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent-from"
-            />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              {row.picks.length > 0 && (
+                <ul className="flex flex-wrap gap-1.5" aria-label={`Favorites of person ${i + 1}`}>
+                  {row.picks.map((pick, n) => (
+                    <li
+                      key={`${pick.title}-${n}`}
+                      className="flex items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-3 pr-1.5 text-xs"
+                    >
+                      <span className="max-w-[12rem] truncate">
+                        {pick.title}
+                        {pick.year ? ` (${pick.year})` : ""}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => update(i, { picks: row.picks.filter((_, k) => k !== n) })}
+                        aria-label={`Remove ${pick.title}`}
+                        className="rounded-full px-1.5 text-muted hover:text-foreground"
+                      >
+                        &times;
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <TitleCombobox
+                value={row.draft}
+                onChange={(draft) => update(i, { draft })}
+                onPick={(t) =>
+                  update(i, {
+                    draft: "",
+                    picks: [
+                      ...row.picks,
+                      { title: t.title, mediaType: t.mediaType, id: t.id, year: t.year },
+                    ].slice(0, MAX_PICKS),
+                  })
+                }
+                onEnterText={(text) =>
+                  update(i, {
+                    draft: "",
+                    picks: [...row.picks, { title: text }].slice(0, MAX_PICKS),
+                  })
+                }
+                disabled={row.picks.length >= MAX_PICKS}
+                maxLength={80}
+                placeholder={
+                  row.picks.length >= MAX_PICKS
+                    ? "4 favorites added"
+                    : row.picks.length === 0
+                      ? "Search a favorite movie, show or anime..."
+                      : "Add another favorite..."
+                }
+                ariaLabel={`Add a favorite for person ${i + 1}`}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent-from disabled:opacity-60"
+              />
+            </div>
             {rows.length > 2 && (
               <button
                 type="button"
@@ -176,7 +246,7 @@ function TogetherInner() {
           {rows.length < 4 && (
             <button
               type="button"
-              onClick={() => setRows((rs) => [...rs, { name: "", titles: "" }])}
+              onClick={() => setRows((rs) => [...rs, asRow("", [])])}
               className="rounded-full border border-border px-4 py-2 text-sm hover:border-accent-from"
             >
               + Add person
