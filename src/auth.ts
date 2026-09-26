@@ -16,6 +16,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Without a database adapter Auth.js mints a new random user id at every sign-in. Pin the
       // stable Google account id instead so a person's data follows them across sign-ins and devices.
       if (account?.providerAccountId) token.sub = account.providerAccountId;
+      // Sessions issued before that fix carry a random UUID. Ending them forces one fresh sign-in
+      // instead of silently saving data under an id the person will never get back.
+      if (!/^\d+$/.test(token.sub ?? "")) return null;
       return token;
     },
     session({ session, token }) {
