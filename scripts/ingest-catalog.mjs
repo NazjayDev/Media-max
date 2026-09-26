@@ -121,7 +121,12 @@ async function main() {
   const limit = Number(process.env.INGEST_LIMIT || Infinity);
   const todo = [...found.values()]
     .filter((d) => !existing.has(d._id))
-    .sort((a, b) => b.voteCount - a.voteCount)
+    // INGEST_ANIME_FIRST=1 adds anime before everything else, since anime is the thinnest part.
+    .sort(
+      (a, b) =>
+        (process.env.INGEST_ANIME_FIRST ? Number(b.anime) - Number(a.anime) : 0) ||
+        b.voteCount - a.voteCount,
+    )
     .slice(0, limit);
   console.log(`Already embedded: ${existing.size}. To embed now: ${todo.length}`);
 
