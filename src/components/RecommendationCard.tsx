@@ -47,9 +47,7 @@ export default function RecommendationCard({ item, index, footer }: Recommendati
           </Link>
         </h3>
         {item.why && (
-          <p className="text-xs font-medium leading-5 text-accent-from sm:text-sm dark:text-violet-300">
-            {item.why}
-          </p>
+          <p className="text-xs font-medium leading-5 text-accent-from sm:text-sm">{item.why}</p>
         )}
         <p
           className={`text-xs leading-5 text-muted sm:text-sm sm:leading-6 ${

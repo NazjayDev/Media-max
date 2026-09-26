@@ -82,7 +82,19 @@ export default function SearchBar({
               : "Enter a movie, show, or anime title..."
           }
           ariaLabel={mode === "vibe" ? "Vibe to search for" : "Title to search for"}
-          className="w-full rounded-full border border-border bg-surface px-5 py-3 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
+          leading={
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4.5 4.5" strokeLinecap="round" />
+            </svg>
+          }
+          className="w-full rounded-full border border-border bg-surface py-3 pl-12 pr-5 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
         />
         <div className="flex justify-center sm:block">
           <MicButton

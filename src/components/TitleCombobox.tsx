@@ -20,6 +20,8 @@ interface TitleComboboxProps {
   ariaLabel: string;
   maxLength?: number;
   className: string;
+  /** Decorative element shown inside the left edge of the input, such as a search icon. */
+  leading?: React.ReactNode;
 }
 
 /** Text input with search-as-you-type movie/TV suggestions and full keyboard support. */
@@ -34,6 +36,7 @@ export default function TitleCombobox({
   ariaLabel,
   maxLength,
   className,
+  leading,
 }: TitleComboboxProps) {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -96,6 +99,14 @@ export default function TitleCombobox({
 
   return (
     <div className="relative min-w-0 flex-1">
+      {leading && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-muted"
+        >
+          {leading}
+        </span>
+      )}
       <input
         type="text"
         role="combobox"

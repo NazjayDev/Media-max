@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
+/* Brand: the logo's orange on warm black. The tagline in the logo is white, so the site is dark only. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
-  --surface: #ffffff;
-  --border: rgba(0, 0, 0, 0.08);
-  --muted: #52525b;
-  --accent-from: #7c3aed;
-  --accent-to: #db2777;
+  color-scheme: dark;
+  --background: #0f0c0a;
+  --foreground: #f5eee6;
+  --surface: #191512;
+  --border: rgba(255, 235, 215, 0.13);
+  --muted: #a99f95;
+  --accent-from: #ff7a14;
+  --accent-to: #f76500;
+  --on-accent: #1a0d02;
 }
 
 @theme inline {
@@ -20,22 +25,30 @@
   --color-accent-to: var(--accent-to);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #f4f4f5;
-    --surface: #18181b;
-    --border: rgba(255, 255, 255, 0.1);
-    --muted: #a1a1aa;
-  }
+  --font-display: var(--font-montserrat);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Headings use the same heavy geometric sans as the logo lettering. */
+h1,
+h2 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Orange buttons carry dark text: white on this orange is below readable contrast at small sizes. */
+.from-accent-from.to-accent-to:not(.text-transparent) {
+  color: var(--on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-from);
+  outline-offset: 2px;
 }
 
 @keyframes fade-up {
@@ -73,4 +86,108 @@ body {
 }
 .scroll-row::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ---- Film reel: a strip of film with sprocket holes, frames and posters that scroll past. ---- */
+.reel {
+  --fw: 168px; /* frame width; sprocket pitch is one seventh of it so holes line up per frame */
+  --pad-x: 18px;
+  --pad-t: 38px;
+  --pad-b: 34px;
+  --band: 24px; /* height of each row of sprocket holes */
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #060403;
+  border-block: 1px solid rgba(247, 101, 0, 0.4);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.65),
+    0 0 90px rgba(247, 101, 0, 0.1);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+@media (max-width: 640px) {
+  .reel {
+    --fw: 126px;
+    --pad-x: 13px;
+    --pad-t: 32px;
+    --pad-b: 26px;
+    --band: 18px;
+  }
+}
+
+.reel-track {
+  display: flex;
+  width: max-content;
+  animation: reel-scroll calc(var(--n, 24) * 3.4s) linear infinite;
+}
+.reel:hover .reel-track {
+  animation-play-state: paused;
+}
+@keyframes reel-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.reel-frame {
+  --pitch: calc(var(--fw) / 7);
+  --hole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' preserveAspectRatio='none'%3E%3Crect x='5' y='6' width='14' height='12' rx='3' fill='%23e8dccd'/%3E%3C/svg%3E");
+  position: relative;
+  flex: none;
+  width: var(--fw);
+  padding: var(--pad-t) var(--pad-x) var(--pad-b);
+  border-right: 2px solid rgba(255, 255, 255, 0.07);
+}
+.reel-frame::before,
+.reel-frame::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--band);
+  background: var(--hole) repeat-x;
+  background-size: var(--pitch) var(--band);
+  opacity: 0.9;
+}
+.reel-frame::before {
+  top: 0;
+}
+.reel-frame::after {
+  bottom: 0;
+}
+.reel-number {
+  position: absolute;
+  top: calc(var(--band) + 3px);
+  left: var(--pad-x);
+  font:
+    700 10px/1 var(--font-display),
+    sans-serif;
+  letter-spacing: 0.08em;
+  color: var(--accent-to);
+}
+.reel-poster {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #1b1612;
+  filter: saturate(0.95);
+  transition:
+    filter 0.2s,
+    transform 0.2s;
+}
+a.reel-poster:hover,
+a.reel-poster:focus-visible {
+  filter: saturate(1.15) brightness(1.12);
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-track {
+    animation: none;
+  }
+  .reel {
+    overflow-x: auto;
+    mask-image: none;
+  }
 }

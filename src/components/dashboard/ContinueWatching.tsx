@@ -28,7 +28,7 @@ export default function ContinueWatching({ entry }: { entry: WatchlistEntry }) {
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent-from dark:text-violet-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent-from">
             Continue watching
           </p>
           <h2 id="continue-heading" className="mt-1 text-xl font-extrabold sm:text-2xl">

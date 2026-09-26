@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
+import PosterReel, { type ReelKind } from "@/components/PosterReel";
 import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -20,6 +23,8 @@ export default function Home() {
   const [mode, setMode] = useState<SearchMode>("title");
   const [vibeQuery, setVibeQuery] = useState("");
   const [narrateToken, setNarrateToken] = useState(0);
+  const [reelKind, setReelKind] = useState<ReelKind>(null);
+  const { status: authStatus } = useSession();
   const voiceReplies = useVoiceReplies();
 
   const narrationScript = useMemo(() => {
@@ -146,50 +151,102 @@ export default function Home() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center overflow-x-hidden px-4 pb-16 pt-12 sm:px-8 sm:pt-20">
+    <div className="relative flex min-h-screen flex-col items-center overflow-x-hidden px-4 pb-16 pt-20 sm:px-8 sm:pt-24">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b from-accent-from/15 via-accent-to/5 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(ellipse_at_50%_0%,rgba(247,101,0,0.2),transparent_65%)]"
       />
 
-      <header className="animate-fade-up relative z-20 flex w-full max-w-5xl flex-col items-center gap-3 text-center">
-        <h1 className="bg-gradient-to-r from-accent-from to-accent-to bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-6xl">
-          Media Max
-        </h1>
-        <p className="max-w-md text-sm text-muted sm:text-base">
-          Select your next watch. Search a movie, show, or anime and get recommendations with the
-          same vibe — plus exactly where to stream them.
-        </p>
+      <h1 className="sr-only">Media Max: select your next watch</h1>
+      <Image
+        src="/brand/mediamax-banner.png"
+        alt="Media Max. Select your next watch."
+        width={1600}
+        height={513}
+        priority
+        unoptimized
+        className="h-auto w-[min(660px,92vw)]"
+      />
 
-        <div className="mt-4 flex w-full justify-center sm:mt-6">
-          <SearchBar
-            onSearch={handleSearch}
-            onSelect={handleSelect}
-            disabled={status === "loading"}
-            mode={mode}
-            onModeChange={setMode}
-          />
-        </div>
-        <p className="mt-1 text-sm text-muted">
-          Or{" "}
-          <Link
-            href="/ask"
-            className="font-semibold text-accent-from underline-offset-2 hover:underline dark:text-violet-300"
+      {/* The reel breaks out of the page padding so it runs edge to edge, tilted like a strip in motion. */}
+      <div className="relative left-1/2 mt-2 w-[104vw] -translate-x-1/2 -rotate-[1.2deg] sm:mt-4">
+        <PosterReel kind={reelKind} />
+      </div>
+
+      <div
+        role="group"
+        aria-label="Browse by type"
+        className="mt-8 flex items-center gap-1 sm:gap-3"
+      >
+        {(
+          [
+            ["movie", "Movies"],
+            ["tv", "TV"],
+            ["anime", "Anime"],
+          ] as const
+        ).map(([kind, label]) => (
+          <button
+            key={kind}
+            type="button"
+            aria-pressed={reelKind === kind}
+            onClick={() => setReelKind(reelKind === kind ? null : kind)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              reelKind === kind
+                ? "bg-accent-to text-[var(--on-accent)]"
+                : "text-muted hover:text-foreground"
+            }`}
           >
-            just ask Media Max
-          </Link>{" "}
-          in your own words, with limits like length or streaming service, or{" "}
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <nav
+        aria-label="Explore"
+        className="mt-5 flex w-full max-w-xl items-center justify-between gap-6 sm:justify-around"
+      >
+        {[
+          ["/trending", "Community"],
+          ["/dashboard", "Dashboard"],
+        ].map(([href, label]) => (
           <Link
-            href="/together"
-            className="font-semibold text-accent-from underline-offset-2 hover:underline dark:text-violet-300"
+            key={href}
+            href={href}
+            className="font-[family-name:var(--font-display)] text-lg font-extrabold uppercase tracking-wide underline decoration-accent-to decoration-2 underline-offset-8 transition hover:text-accent-from sm:text-xl"
           >
-            pick something for the whole group
+            {label}
           </Link>
-          .
-        </p>
-      </header>
+        ))}
+      </nav>
 
-      <main className="mt-10 w-full max-w-5xl sm:mt-14" aria-live="polite">
+      <div className="mt-8 flex w-full justify-center">
+        <SearchBar
+          onSearch={handleSearch}
+          onSelect={handleSelect}
+          disabled={status === "loading"}
+          mode={mode}
+          onModeChange={setMode}
+        />
+      </div>
+      <p className="mt-4 max-w-xl text-center text-sm text-muted">
+        Or{" "}
+        <Link
+          href="/ask"
+          className="font-semibold text-accent-from underline-offset-2 hover:underline"
+        >
+          just ask Media Max
+        </Link>{" "}
+        in your own words, with limits like length or streaming service, or{" "}
+        <Link
+          href="/together"
+          className="font-semibold text-accent-from underline-offset-2 hover:underline"
+        >
+          pick something for the whole group
+        </Link>
+        .
+      </p>
+
+      <main className="mt-12 w-full max-w-5xl sm:mt-16" aria-live="polite">
         {status === "idle" && (
           <TrendingStrip
             onPickVibe={(query) => {
@@ -237,6 +294,25 @@ export default function Home() {
           </>
         )}
       </main>
+
+      {authStatus === "unauthenticated" && (
+        <div className="mt-16 flex w-full max-w-xs flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => signIn("google")}
+            className="rounded-full bg-gradient-to-r from-accent-from to-accent-to px-8 py-3 text-base font-bold transition hover:brightness-110"
+          >
+            Sign up
+          </button>
+          <button
+            type="button"
+            onClick={() => signIn("google")}
+            className="rounded-full border border-accent-to px-8 py-3 text-base font-bold text-accent-from transition hover:bg-accent-to/10"
+          >
+            Login
+          </button>
+        </div>
+      )}
 
       <footer className="mt-auto w-full max-w-5xl pt-16 text-center text-xs leading-5 text-muted">
         <p>

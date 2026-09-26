@@ -50,7 +50,7 @@ export default function TrendingStrip({ onPickVibe }: TrendingStripProps) {
         </div>
         <Link
           href="/trending"
-          className="text-sm font-medium text-accent-from underline-offset-2 hover:underline dark:text-violet-300"
+          className="text-sm font-medium text-accent-from underline-offset-2 hover:underline"
         >
           See all trends
         </Link>
