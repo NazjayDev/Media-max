@@ -67,3 +67,18 @@ export async function getCatalogEntry(
     return null;
   }
 }
+
+/** Stored embeddings for a set of catalog keys. Missing titles are simply absent from the map. */
+export async function getEmbeddings(keys: string[]): Promise<Map<string, number[]>> {
+  const db = await getDb();
+  if (!db || keys.length === 0) return new Map();
+  try {
+    const docs = await db
+      .collection<{ _id: string; embedding?: number[] }>("titles")
+      .find({ _id: { $in: keys } }, { projection: { embedding: 1 } })
+      .toArray();
+    return new Map(docs.filter((d) => d.embedding).map((d) => [d._id, d.embedding!]));
+  } catch {
+    return new Map();
+  }
+}

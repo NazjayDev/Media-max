@@ -55,6 +55,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 Ask
               </Link>
               <Link
+                href="/together"
+                className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"
+              >
+                Together
+              </Link>
+              <Link
                 href="/trending"
                 className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"
               >

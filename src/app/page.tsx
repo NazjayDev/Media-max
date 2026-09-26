@@ -168,7 +168,14 @@ export default function Home() {
           >
             just ask Media Max
           </Link>{" "}
-          in your own words, with limits like length or streaming service.
+          in your own words, with limits like length or streaming service, or{" "}
+          <Link
+            href="/together"
+            className="font-semibold text-accent-from underline-offset-2 hover:underline dark:text-violet-300"
+          >
+            pick something for the whole group
+          </Link>
+          .
         </p>
       </header>
 
