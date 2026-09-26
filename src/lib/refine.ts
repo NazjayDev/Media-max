@@ -50,12 +50,19 @@ const RESPONSE_SCHEMA = {
 };
 
 // Each model has its own free-tier daily quota, so a quota error falls through to the next one.
-const MODELS = [
-  "gemini-flash-lite-latest",
-  "gemini-3-flash-preview",
-  "gemma-4-26b-a4b-it",
-  "gemini-flash-latest",
-];
+const DO_PREFIX = "do:";
+const DO_ENDPOINT = "https://inference.do-ai.run/v1/chat/completions";
+
+// DigitalOcean Gradient serverless inference is paid per token but has no daily cap, so it sits
+// ahead of the last-resort Gemini models. It only joins the chain when a key is configured.
+function modelChain(): string[] {
+  const chain = ["gemini-flash-lite-latest", "gemini-3-flash-preview"];
+  if (process.env.DO_INFERENCE_KEY) {
+    chain.push(`${DO_PREFIX}${process.env.DO_INFERENCE_MODEL || "llama3.3-70b-instruct"}`);
+  }
+  chain.push("gemma-4-26b-a4b-it", "gemini-flash-latest");
+  return chain;
+}
 const HEDGE_AFTER_MS = 4000;
 const MODEL_TIMEOUT_MS = 12000;
 
@@ -82,6 +89,7 @@ export async function refineCandidates(
   options: { max: number; min: number }
 ): Promise<Refined[]> {
   const ai = new GoogleGenAI({});
+  const models = modelChain();
   const allowed = new Set(candidates.map((c) => c.key));
   const contents = `${wanted}
 
@@ -90,7 +98,7 @@ Return between ${options.min} and ${options.max} titles.
 Candidates:
 ${candidates.map(describeCandidate).join("\n")}`;
 
-  const attempt = async (model: string): Promise<Refined[]> => {
+  const callGemini = async (model: string): Promise<unknown> => {
     const response = await ai.models.generateContent({
       model,
       contents,
@@ -103,8 +111,43 @@ ${candidates.map(describeCandidate).join("\n")}`;
         httpOptions: { timeout: MODEL_TIMEOUT_MS },
       },
     });
+    return JSON.parse(response.text ?? "[]");
+  };
 
-    const parsed: unknown = JSON.parse(response.text ?? "[]");
+  const callGradient = async (model: string): Promise<unknown> => {
+    const res = await fetch(DO_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.DO_INFERENCE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.3,
+        max_tokens: 1500,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `${SYSTEM_PROMPT}\nRespond with only a JSON object shaped like {"picks":[{"key":"...","blurb":"...","why":"..."}]}.`,
+          },
+          { role: "user", content: contents },
+        ],
+      }),
+      signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`DigitalOcean inference ${res.status}: ${(await res.text()).slice(0, 160)}`);
+
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}") as { picks?: unknown };
+    return parsed.picks ?? [];
+  };
+
+  const attempt = async (model: string): Promise<Refined[]> => {
+    const parsed = model.startsWith(DO_PREFIX)
+      ? await callGradient(model.slice(DO_PREFIX.length))
+      : await callGemini(model);
+
     const seen = new Set<string>();
     const refined = (Array.isArray(parsed) ? parsed : [])
       .filter(isRefined)
@@ -126,8 +169,8 @@ ${candidates.map(describeCandidate).join("\n")}`;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const startNext = () => {
-      if (settled || started >= MODELS.length) return;
-      const model = MODELS[started++];
+      if (settled || started >= models.length) return;
+      const model = models[started++];
       timer = setTimeout(startNext, HEDGE_AFTER_MS);
       attempt(model).then(
         (result) => {
@@ -139,7 +182,7 @@ ${candidates.map(describeCandidate).join("\n")}`;
         (error) => {
           failures.push(error);
           if (settled) return;
-          if (failures.length === MODELS.length) {
+          if (failures.length === models.length) {
             settled = true;
             clearTimeout(timer);
             reject(failures[0]);
