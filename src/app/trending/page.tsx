@@ -13,13 +13,20 @@ export default function TrendingPage() {
   const isDemo = !!session?.user?.demo;
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
   const data = useTrending(refreshKey);
 
   async function refreshShowcase() {
     setRefreshing(true);
+    setRefreshError("");
     try {
-      await fetch("/api/demo/trending", { method: "POST" });
+      const res = await fetch("/api/demo/trending", { method: "POST" });
+      if (!res.ok) {
+        setRefreshError((await res.json().catch(() => ({}))).error ?? "Couldn't refresh.");
+      }
       setRefreshKey((k) => k + 1);
+    } catch {
+      setRefreshError("Network error. Try again.");
     } finally {
       setRefreshing(false);
     }
@@ -38,11 +45,13 @@ export default function TrendingPage() {
         Live from the last 24 hours of searches and saves. Every event is stored anonymously in a
         Tiger Data (TimescaleDB) hypertable and rolled up hourly by continuous aggregates.
       </p>
-      {data?.includesDemo && (
+      {(data?.includesDemo || isDemo) && (
         <div className="mt-2 flex max-w-xl flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
           <span>
-            Demo account showcase: this view adds sample activity so the page is full for the
-            presentation. Regular visitors only see real activity.
+            {refreshError ||
+              (data?.includesDemo
+                ? "Demo account showcase: this view adds sample activity so the page is full for the presentation. Regular visitors only see real activity."
+                : "Demo account: the sample showcase isn't loaded yet. Press Refresh showcase.")}
           </span>
           {isDemo && (
             <button
