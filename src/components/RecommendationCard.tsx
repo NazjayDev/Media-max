@@ -1,4 +1,5 @@
 import Image from "next/image";
+import SaveButton from "@/components/SaveButton";
 import type { Recommendation } from "@/types/media";
 
 interface RecommendationCardProps {
@@ -13,6 +14,7 @@ export default function RecommendationCard({ item, index }: RecommendationCardPr
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+        <SaveButton item={item} />
         {item.posterPath ? (
           <Image
             src={item.posterPath}
