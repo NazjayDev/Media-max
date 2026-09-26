@@ -202,3 +202,100 @@ a.reel-poster:focus-visible {
   background-size: 14px 12px;
   opacity: 0.55;
 }
+
+/* Movie tickets for the two ways to choose: a main section and a torn-off stub with a perforated edge. */
+.ticket {
+  --stub: 5.75rem;
+  --notch: 11px;
+  display: flex;
+  align-items: stretch;
+  min-height: 7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: left;
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+  /* Half-circle bites out of the top and bottom edge where the stub tears off. */
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, #0000 97%, #000) top / 100%
+      51% no-repeat,
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, #0000 97%, #000) bottom /
+      100% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, #0000 97%, #000) top / 100%
+      51% no-repeat,
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, #0000 97%, #000) bottom /
+      100% 51% no-repeat;
+}
+.ticket:hover,
+.ticket:focus-visible {
+  transform: rotate(0deg) translateY(-3px);
+  border-color: var(--accent-to);
+}
+.ticket-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1rem 1.25rem;
+}
+.ticket-title {
+  font:
+    800 1.2rem/1.15 var(--font-display),
+    sans-serif;
+  letter-spacing: -0.01em;
+}
+.ticket-text {
+  font-size: 0.875rem;
+  line-height: 1.35rem;
+  color: var(--muted);
+}
+.ticket-stub {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  width: var(--stub);
+  border-left: 2px dashed rgba(26, 13, 2, 0.5);
+  border-radius: 0 7px 7px 0;
+  background: var(--accent-to);
+  color: var(--on-accent);
+}
+.ticket-admit {
+  font:
+    700 0.6rem/1 var(--font-display),
+    sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.ticket-seats {
+  font:
+    800 2rem/1 var(--font-display),
+    sans-serif;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 400px) {
+  .ticket {
+    --stub: 4.75rem;
+  }
+  .ticket-seats {
+    font-size: 1.6rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket {
+    transform: none;
+    transition: none;
+  }
+  .ticket:hover,
+  .ticket:focus-visible {
+    transform: none;
+  }
+}

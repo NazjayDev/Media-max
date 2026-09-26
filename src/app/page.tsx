@@ -203,7 +203,7 @@ export default function Home() {
 
       <nav
         aria-label="Explore"
-        className="mt-5 flex w-full max-w-xl flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:justify-around"
+        className="mt-5 flex w-full max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-3 sm:justify-around sm:gap-x-8"
       >
         {[
           ["/community", "Community"],
@@ -213,7 +213,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="font-[family-name:var(--font-display)] text-lg font-extrabold uppercase tracking-wide underline decoration-accent-to decoration-2 underline-offset-8 transition hover:text-accent-from sm:text-xl"
+            className="font-[family-name:var(--font-display)] text-base font-extrabold uppercase tracking-wide underline decoration-accent-to decoration-2 underline-offset-8 transition hover:text-accent-from sm:text-xl"
           >
             {label}
           </Link>
@@ -231,54 +231,38 @@ export default function Home() {
       </div>
       <section
         aria-label="Other ways to choose"
-        className="mt-6 grid w-full max-w-3xl gap-3 sm:grid-cols-2"
+        className="mt-8 grid w-full max-w-3xl gap-4 sm:grid-cols-2 sm:gap-5"
       >
         {[
           {
             href: "/ask",
             title: "Ask Media Max",
-            text: "Say what you're in the mood for, with limits like length or streaming service, and keep refining.",
-            icon: (
-              <path
-                d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V15h-.5A1.5 1.5 0 0 1 5 13.5z"
-                strokeLinejoin="round"
-              />
-            ),
+            text: "Say what you're in the mood for, with limits like length or streaming service.",
+            seats: "1",
+            tilt: "-0.7deg",
           },
           {
             href: "/together",
             title: "Watch Together",
-            text: "Add everyone's favorites and get picks the whole group will enjoy, ranked by who likes them least.",
-            icon: (
-              <>
-                <circle cx="9" cy="12" r="5.5" />
-                <circle cx="15" cy="12" r="5.5" />
-              </>
-            ),
+            text: "Add everyone's favorites and get picks the whole group will enjoy.",
+            seats: "2\u20134",
+            tilt: "0.7deg",
           },
-        ].map((entry) => (
+        ].map((ticket) => (
           <Link
-            key={entry.href}
-            href={entry.href}
-            className="group flex gap-4 rounded-lg border border-border bg-surface p-4 transition hover:border-accent-to hover:bg-accent-to/5"
+            key={ticket.href}
+            href={ticket.href}
+            className="ticket"
+            style={{ "--tilt": ticket.tilt } as React.CSSProperties}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent-to/15 text-accent-from">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden
-              >
-                {entry.icon}
-              </svg>
+            <span className="ticket-main">
+              <span className="ticket-title">{ticket.title}</span>
+              <span className="ticket-text">{ticket.text}</span>
             </span>
-            <span className="min-w-0">
-              <span className="block font-[family-name:var(--font-display)] text-base font-extrabold">
-                {entry.title}
-              </span>
-              <span className="mt-1 block text-sm leading-5 text-muted">{entry.text}</span>
+            {/* Seats: one for asking on your own, two to four for a group. Decorative. */}
+            <span className="ticket-stub" aria-hidden>
+              <span className="ticket-admit">Admit</span>
+              <span className="ticket-seats">{ticket.seats}</span>
             </span>
           </Link>
         ))}
