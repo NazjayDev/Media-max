@@ -66,6 +66,7 @@ export async function hydrate(
         title: c.title,
         posterPath: c.posterPath,
         synopsis: c.overview,
+        year: c.year,
         blurb: r.blurb,
         why: r.why || undefined,
         streamingProviders: await getWatchProviders(c.mediaType, c.id, WATCH_REGION),

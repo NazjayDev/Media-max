@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import BackLink from "@/components/BackLink";
 import Discussion from "@/components/discussion/Discussion";
 import ProviderLogos from "@/components/ProviderLogos";
 import RatingChips from "@/components/RatingChips";
@@ -37,9 +38,7 @@ export default function TitlePage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-24 sm:px-8">
-      <Link href="/" className="text-sm text-muted hover:text-foreground">
-        &larr; Back to search
-      </Link>
+      <BackLink className="text-sm text-muted hover:text-foreground" />
 
       {!item ? (
         <div className="mt-6 h-64 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800" />

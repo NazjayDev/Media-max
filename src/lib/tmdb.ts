@@ -63,9 +63,13 @@ interface TmdbMultiSearchResult {
   name?: string;
   release_date?: string;
   first_air_date?: string;
+  overview?: string;
   poster_path: string | null;
   popularity: number;
 }
+
+const yearOf = (r: { release_date?: string; first_air_date?: string }) =>
+  Number((r.release_date ?? r.first_air_date ?? "").slice(0, 4)) || null;
 
 const normalizeTitle = (text: string) =>
   text
@@ -112,7 +116,24 @@ export async function searchTitle(query: string): Promise<SearchResult | null> {
     mediaType: best.media_type,
     title: best.name,
     posterPath: posterUrl(best.poster_path, "w342"),
+    year: yearOf(best),
   };
+}
+
+/** Plain title lookup: the best matches with details and where they stream, no recommendations. */
+export async function lookupTitles(query: string, limit = 12): Promise<Recommendation[]> {
+  const hits = (await searchTitles(query)).slice(0, limit);
+  return Promise.all(
+    hits.map(async (r): Promise<Recommendation> => ({
+      id: r.id,
+      mediaType: r.media_type,
+      title: r.name,
+      posterPath: posterUrl(r.poster_path, "w342"),
+      synopsis: r.overview ?? "",
+      year: yearOf(r),
+      streamingProviders: await getWatchProviders(r.media_type, r.id, WATCH_REGION),
+    })),
+  );
 }
 
 /** Up to `limit` suggestions for a search-as-you-type dropdown. */
@@ -122,7 +143,7 @@ export async function suggestTitles(query: string, limit = 6): Promise<SearchSug
     mediaType: r.media_type,
     title: r.name,
     posterPath: posterUrl(r.poster_path, "w92"),
-    year: Number((r.release_date ?? r.first_air_date ?? "").slice(0, 4)) || null,
+    year: yearOf(r),
   }));
 }
 
@@ -253,6 +274,8 @@ export async function getRecommendationsWithProviders(
 interface TmdbTitleDetails {
   title?: string;
   name?: string;
+  release_date?: string;
+  first_air_date?: string;
   overview: string;
   poster_path: string | null;
 }
@@ -271,6 +294,7 @@ export async function getTitleCard(
       title: d.title ?? d.name ?? "Untitled",
       posterPath: d.poster_path ? `${TMDB_IMAGE_BASE_URL}/w342${d.poster_path}` : null,
       synopsis: d.overview,
+      year: yearOf(d),
       streamingProviders: await getWatchProviders(mediaType, id, region),
     };
   } catch {

@@ -1,18 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
+import GenreChips from "@/components/GenreChips";
 import PosterReel, { type ReelKind } from "@/components/PosterReel";
+import RecentSearches from "@/components/RecentSearches";
+import SearchedPanel from "@/components/SearchedPanel";
+import UndoBar, { type UndoState } from "@/components/UndoBar";
 import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import NarrateButton from "@/components/NarrateButton";
 import TrendingStrip from "@/components/TrendingStrip";
+import {
+  RESET_HOME_EVENT,
+  loadLastSearch,
+  saveLastSearch,
+  saveScroll,
+  type LastSearch,
+} from "@/lib/lastSearch";
+import { addRecentSearch } from "@/lib/recentSearches";
 import { useSeen } from "@/lib/useSeen";
 import { useVoiceReplies } from "@/lib/voiceSetting";
-import type { Recommendation, SearchResult, SearchSuggestion } from "@/types/media";
+import type { MediaType, Recommendation, SearchResult, SearchSuggestion } from "@/types/media";
 
 type Status = "idle" | "loading" | "error" | "success";
 
@@ -31,20 +43,14 @@ export default function Home() {
   const [moreBusy, setMoreBusy] = useState(false);
   const [noMore, setNoMore] = useState(false);
   const [moreError, setMoreError] = useState("");
-  const [undo, setUndo] = useState<{ title: string; run: () => void } | null>(null);
+  const [undo, setUndo] = useState<UndoState | null>(null);
+  const started = useRef(false);
 
   // Titles the person has already watched are left out of what they see.
   const visible = useMemo(
     () => recommendations.filter((r) => !seen.has(`${r.mediaType}:${r.id}`)),
     [recommendations, seen],
   );
-
-  // The "marked as watched" bar goes away by itself.
-  useEffect(() => {
-    if (!undo) return;
-    const timer = setTimeout(() => setUndo(null), 8000);
-    return () => clearTimeout(timer);
-  }, [undo]);
 
   const narrationScript = useMemo(() => {
     const intro = matchedTitle
@@ -93,6 +99,7 @@ export default function Home() {
 
       setRecommendations(data.results);
       setStatus("success");
+      addRecentSearch({ kind: "vibe", text: vibe });
       if (viaVoice && voiceReplies) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
@@ -119,10 +126,20 @@ export default function Home() {
 
   // A title picked from the dropdown is looked up by its exact id rather than by its name.
   function handleSelect(title: SearchSuggestion) {
-    return handleTitleSearch(`mediaType=${title.mediaType}&id=${title.id}`, title.title, false);
+    return handleTitleSearch(
+      `mediaType=${title.mediaType}&id=${title.id}`,
+      title.title,
+      false,
+      title.year,
+    );
   }
 
-  async function handleTitleSearch(lookup: string, label: string, viaVoice: boolean) {
+  async function handleTitleSearch(
+    lookup: string,
+    label: string,
+    viaVoice: boolean,
+    yearHint?: number | null,
+  ) {
     setStatus("loading");
     setErrorMessage("");
     setRecommendations([]);
@@ -144,7 +161,8 @@ export default function Home() {
         return;
       }
 
-      const match: SearchResult = searchData;
+      // Picking from the suggestions gives us the year; a typed search gets it from the lookup.
+      const match: SearchResult = { ...searchData, year: searchData.year ?? yearHint ?? null };
       setMatchedTitle(match);
 
       const recsRes = await fetch(
@@ -166,12 +184,102 @@ export default function Home() {
 
       setRecommendations(recsData.results);
       setStatus("success");
+      addRecentSearch({
+        kind: "title",
+        mediaType: match.mediaType,
+        id: match.id,
+        title: match.title,
+        posterPath: match.posterPath,
+        year: match.year,
+      });
       if (viaVoice && voiceReplies) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
     }
   }
+
+  function restoreSearch(snapshot: { search: LastSearch; scrollY: number }) {
+    const { search, scrollY } = snapshot;
+    setMode(search.mode);
+    setMatchedTitle(search.matched);
+    setVibeQuery(search.vibe);
+    setRecommendations(search.recommendations);
+    setNoMore(search.noMore);
+    setStatus("success");
+    // Two frames so the results have laid out before scrolling back to where the person was.
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, scrollY)));
+  }
+
+  // On arrival: open a title someone asked to get recommendations for, or put the last search back
+  // (which is what "Back" from a title page needs).
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const like = new URLSearchParams(window.location.search).get("like");
+    if (like && /^(movie|tv):\d+$/.test(like)) {
+      const [mediaType, id] = like.split(":");
+      window.history.replaceState(null, "", "/");
+      void handleSelect({
+        mediaType: mediaType as MediaType,
+        id: Number(id),
+        title: "",
+        posterPath: null,
+        year: null,
+      });
+      return;
+    }
+    const snapshot = loadLastSearch();
+    // Browser storage can only be read after arrival, so this can't be initial state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (snapshot) restoreSearch(snapshot);
+    // Runs once on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Clicking the logo while already here returns to the start screen.
+  useEffect(() => {
+    const reset = () => {
+      setStatus("idle");
+      setRecommendations([]);
+      setMatchedTitle(null);
+      setVibeQuery("");
+      setNoMore(false);
+      setMoreError("");
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener(RESET_HOME_EVENT, reset);
+    return () => window.removeEventListener(RESET_HOME_EVENT, reset);
+  }, []);
+
+  // Keep the current results (and where the page is scrolled to) so Back can restore them.
+  useEffect(() => {
+    if (status !== "success") return;
+    saveLastSearch({
+      mode: matchedTitle ? "title" : "vibe",
+      matched: matchedTitle,
+      vibe: vibeQuery,
+      recommendations,
+      noMore,
+    });
+  }, [status, matchedTitle, vibeQuery, recommendations, noMore]);
+
+  useEffect(() => {
+    if (status !== "success") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        saveScroll(window.scrollY);
+      }, 150);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (timer) clearTimeout(timer);
+    };
+  }, [status]);
 
   async function handleSeen(item: Recommendation) {
     const run = await markSeen(item);
@@ -268,6 +376,7 @@ export default function Home() {
         {[
           ["/community", "Community"],
           ["/trending", "Trending"],
+          ["/browse", "Browse"],
           ["/dashboard", "Dashboard"],
         ].map(([href, label]) => (
           <Link
@@ -289,6 +398,34 @@ export default function Home() {
           onModeChange={setMode}
         />
       </div>
+
+      {status === "idle" && (
+        <RecentSearches
+          onTitle={(r) =>
+            void handleSelect({
+              mediaType: r.mediaType,
+              id: r.id,
+              title: r.title,
+              posterPath: r.posterPath,
+              year: r.year ?? null,
+            })
+          }
+          onVibe={(text) => {
+            setMode("vibe");
+            void handleVibeSearch(text);
+          }}
+        />
+      )}
+      <p className="mt-4 text-center text-sm text-muted">
+        Just looking something up?{" "}
+        <Link
+          href="/search"
+          className="font-semibold text-accent-from underline-offset-2 hover:underline"
+        >
+          Search without recommendations
+        </Link>
+      </p>
+
       <section
         aria-label="Other ways to choose"
         className="mt-8 grid w-full max-w-3xl gap-4 sm:grid-cols-2 sm:gap-5"
@@ -330,6 +467,12 @@ export default function Home() {
 
       <main className="mt-12 w-full max-w-5xl sm:mt-16" aria-live="polite">
         {status === "idle" && (
+          <div className="flex flex-col items-center">
+            <GenreChips />
+          </div>
+        )}
+
+        {status === "idle" && (
           <TrendingStrip
             onPickVibe={(query) => {
               setMode("vibe");
@@ -357,12 +500,7 @@ export default function Home() {
 
         {status === "success" && (matchedTitle || vibeQuery) && (
           <>
-            <p className="animate-fade-up mb-6 text-center text-sm text-muted">
-              {matchedTitle ? "Because you searched for" : "Matching the vibe"}{" "}
-              <span className="font-semibold text-foreground">
-                {matchedTitle ? matchedTitle.title : `"${vibeQuery}"`}
-              </span>
-            </p>
+            <SearchedPanel matched={matchedTitle} vibe={vibeQuery} />
             {voiceReplies && (
               <div className="mb-6 flex justify-center">
                 <NarrateButton script={narrationScript} autoPlayToken={narrateToken} />
@@ -429,26 +567,7 @@ export default function Home() {
         </div>
       )}
 
-      {undo && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3 text-sm shadow-xl shadow-black/50"
-        >
-          <span className="min-w-0">
-            Marked <strong className="break-words">{undo.title}</strong> as watched.
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              undo.run();
-              setUndo(null);
-            }}
-            className="shrink-0 font-bold text-accent-from hover:underline"
-          >
-            Undo
-          </button>
-        </div>
-      )}
+      <UndoBar undo={undo} onDismiss={() => setUndo(null)} />
 
       <footer className="mt-auto w-full max-w-5xl pt-16 text-center text-xs leading-5 text-muted">
         <p>

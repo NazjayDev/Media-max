@@ -57,6 +57,9 @@ export default function RecommendationCard({
           <Link href={`/title/${item.mediaType}/${item.id}`} className="hover:underline">
             {item.title}
           </Link>
+          {item.year ? (
+            <span className="ml-1.5 text-xs font-normal text-muted">{item.year}</span>
+          ) : null}
         </h3>
         {item.why && (
           <p className="text-xs font-medium leading-5 text-accent-from sm:text-sm">{item.why}</p>

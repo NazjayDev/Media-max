@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useWatchlist } from "@/components/Providers";
 import { OPEN_FEEDBACK_EVENT } from "@/components/FeedbackButton";
+import { RESET_HOME_EVENT, clearLastSearch } from "@/lib/lastSearch";
 import InstallApp from "@/components/InstallApp";
 import VoiceToggle from "@/components/VoiceToggle";
 
@@ -15,6 +16,8 @@ const LINKS = [
   { href: "/together", label: "Watch Together" },
   { href: "/community", label: "Community" },
   { href: "/trending", label: "Trending" },
+  { href: "/browse", label: "Browse by genre" },
+  { href: "/search", label: "Look up a title" },
   { href: "/dashboard", label: "My dashboard" },
 ];
 
@@ -73,7 +76,15 @@ export default function SiteHeader() {
 
   return (
     <header className="absolute inset-x-0 top-0 z-40 flex items-start justify-between px-4 py-4 sm:px-8">
-      <Link href="/" aria-label="Media Max home" className="shrink-0 rounded-xl">
+      <Link
+        href="/"
+        aria-label="Media Max home"
+        onClick={() => {
+          clearLastSearch();
+          window.dispatchEvent(new Event(RESET_HOME_EVENT));
+        }}
+        className="shrink-0 rounded-xl"
+      >
         <Image
           src="/brand/mediamax-icon-128.png"
           alt="Media Max"

@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
               mediaType: card.mediaType,
               title: card.title,
               posterPath: card.posterPath,
+              year: card.year,
             },
         )
       : await searchTitle(query!);

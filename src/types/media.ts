@@ -11,6 +11,7 @@ export interface SearchResult {
   mediaType: MediaType;
   title: string;
   posterPath: string | null;
+  year?: number | null;
 }
 
 export interface SearchSuggestion extends SearchResult {
@@ -33,6 +34,8 @@ export interface Recommendation {
   posterPath: string | null;
   synopsis: string;
   streamingProviders: StreamingProvider[];
+  /** Release year, when known, so same-named titles can be told apart. */
+  year?: number | null;
   why?: string;
   blurb?: string;
   ratings?: Ratings;
