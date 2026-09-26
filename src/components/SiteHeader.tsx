@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useWatchlist } from "@/components/Providers";
+import { OPEN_FEEDBACK_EVENT } from "@/components/FeedbackButton";
 import VoiceToggle from "@/components/VoiceToggle";
 
 const LINKS = [
@@ -150,6 +151,16 @@ export default function SiteHeader() {
             </ul>
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
               <VoiceToggle />
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenFor(null);
+                  window.dispatchEvent(new Event(OPEN_FEEDBACK_EVENT));
+                }}
+                className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition hover:bg-accent-from/15"
+              >
+                Send feedback
+              </button>
               {user ? (
                 <button
                   type="button"
