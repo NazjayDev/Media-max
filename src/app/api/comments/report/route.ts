@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
-import { HIDE_AFTER_REPORTS, commentsCollection } from "@/lib/comments";
+import {
+  HIDE_AFTER_REPORTS,
+  REPORT_REASONS,
+  SPOILER_AFTER_REPORTS,
+  commentsCollection,
+  type ReportReason,
+} from "@/lib/comments";
 import { allowRequest } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
@@ -13,10 +19,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many reports. Try again later." }, { status: 429 });
   }
 
-  const body = (await request.json().catch(() => null)) as { id?: string } | null;
+  const body = (await request.json().catch(() => null)) as { id?: string; reason?: string } | null;
   if (!body?.id || !ObjectId.isValid(body.id)) {
     return NextResponse.json({ error: "Invalid comment" }, { status: 400 });
   }
+  if (!REPORT_REASONS.includes(body.reason as ReportReason)) {
+    return NextResponse.json({ error: "Choose a reason" }, { status: 400 });
+  }
+  const reason = body.reason as ReportReason;
 
   const collection = await commentsCollection();
   if (!collection) {
@@ -24,18 +34,31 @@ export async function POST(request: NextRequest) {
   }
 
   const _id = new ObjectId(body.id);
-  const updated = await collection.findOneAndUpdate(
-    { _id, userId: { $ne: userId } },
-    { $addToSet: { reports: userId } },
-    { returnDocument: "after" }
-  );
-  if (!updated) {
+  const comment = await collection.findOne({ _id, userId: { $ne: userId } });
+  if (!comment) {
     return NextResponse.json({ error: "Nothing to report" }, { status: 404 });
   }
 
-  // A comment reported by enough different people is hidden until someone reviews it.
-  if ((updated.reports?.length ?? 0) >= HIDE_AFTER_REPORTS && !updated.hidden) {
-    await collection.updateOne({ _id }, { $set: { hidden: true } });
+  // One report per person per comment; repeat reports are accepted but not counted twice.
+  if (!comment.reports?.some((r) => r.userId === userId)) {
+    const updated = await collection.findOneAndUpdate(
+      { _id, "reports.userId": { $ne: userId } },
+      { $push: { reports: { userId, reason, at: new Date() } } },
+      { returnDocument: "after" }
+    );
+
+    const reports = updated?.reports ?? [];
+    const spoilerReports = reports.filter((r) => r.reason === "spoiler").length;
+    const harmfulReports = reports.length - spoilerReports;
+
+    if (harmfulReports >= HIDE_AFTER_REPORTS && !updated?.hidden) {
+      // Hurtful, off-topic or spam: hidden until someone reviews it.
+      await collection.updateOne({ _id }, { $set: { hidden: true } });
+    } else if (spoilerReports >= SPOILER_AFTER_REPORTS && !updated?.spoiler) {
+      // Unmarked spoiler: cover it instead of removing it.
+      await collection.updateOne({ _id }, { $set: { spoiler: true, spoilerFlagged: true } });
+    }
   }
+
   return NextResponse.json({ ok: true });
 }

@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     mediaType?: string;
     id?: number | string;
     body?: unknown;
+    spoiler?: unknown;
     parentId?: string;
   } | null;
 
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
     parentId,
     userId: user.id,
     body,
+    spoiler: payload?.spoiler === true,
     createdAt: new Date(),
   };
   await collection.insertOne(doc);

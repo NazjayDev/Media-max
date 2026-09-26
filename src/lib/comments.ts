@@ -2,6 +2,15 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import type { MediaType } from "@/types/media";
 
+export type ReportReason = "spoiler" | "harassment" | "offtopic" | "spam";
+export const REPORT_REASONS: ReportReason[] = ["spoiler", "harassment", "offtopic", "spam"];
+
+export interface CommentReport {
+  userId: string;
+  reason: ReportReason;
+  at: Date;
+}
+
 export interface CommentDoc {
   _id: ObjectId;
   mediaKey: string;
@@ -9,7 +18,10 @@ export interface CommentDoc {
   userId: string;
   body: string;
   createdAt: Date;
-  reports?: string[];
+  spoiler?: boolean;
+  /** True when the spoiler cover was added by community reports rather than the author. */
+  spoilerFlagged?: boolean;
+  reports?: CommentReport[];
   hidden?: boolean;
 }
 
@@ -17,13 +29,16 @@ export interface PublicComment {
   id: string;
   body: string;
   authorName: string;
+  spoiler: boolean;
   createdAt: string;
   mine: boolean;
   replies: PublicComment[];
 }
 
 export const MAX_COMMENT_LENGTH = 1000;
+// Different people must agree before a comment is covered or hidden.
 export const HIDE_AFTER_REPORTS = 3;
+export const SPOILER_AFTER_REPORTS = 2;
 
 export const mediaKeyOf = (mediaType: MediaType, id: number) => `${mediaType}:${id}`;
 
@@ -45,6 +60,7 @@ export function toPublic(
     id: doc._id.toHexString(),
     body: doc.body,
     authorName: names.get(doc.userId) ?? "Anonymous",
+    spoiler: !!doc.spoiler,
     createdAt: doc.createdAt.toISOString(),
     mine: !!viewerId && doc.userId === viewerId,
     replies,
