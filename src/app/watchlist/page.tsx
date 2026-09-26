@@ -7,6 +7,7 @@ import { useWatchlist } from "@/components/Providers";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import WatchControls from "@/components/WatchControls";
+import PassportPanel from "@/components/PassportPanel";
 import type { Recommendation, WatchStatus } from "@/types/media";
 
 type Filter = "all" | WatchStatus;
@@ -136,6 +137,8 @@ export default function WatchlistPage() {
                 ))}
               </div>
             )}
+
+            <PassportPanel />
 
             <section className="mt-14" aria-labelledby="picks-heading">
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
