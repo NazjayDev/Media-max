@@ -13,6 +13,15 @@ export interface SearchResult {
   posterPath: string | null;
 }
 
+export interface Ratings {
+  tmdb?: number;
+  imdb?: string;
+  rottenTomatoes?: string;
+  metacritic?: string;
+}
+
+export type WatchStatus = "want" | "watching" | "watched";
+
 export interface Recommendation {
   id: number;
   mediaType: MediaType;
@@ -22,4 +31,10 @@ export interface Recommendation {
   streamingProviders: StreamingProvider[];
   why?: string;
   blurb?: string;
+  ratings?: Ratings;
+}
+
+export interface WatchlistEntry extends Recommendation {
+  status: WatchStatus;
+  userRating: number | null;
 }

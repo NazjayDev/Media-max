@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "@google/genai";
 import { suggestByVibe } from "@/lib/vibe";
 import { vibeRecommendations } from "@/lib/recommend";
+import { attachRatings } from "@/lib/ratings";
 import { lookupRecommendation } from "@/lib/tmdb";
 import type { Recommendation } from "@/types/media";
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     try {
       const results = await vibeRecommendations(vibe);
-      return NextResponse.json({ results });
+      return NextResponse.json({ results: await attachRatings(results) });
     } catch (error) {
       console.error("Catalog vibe search failed, using generative fallback:", error);
     }
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     );
 
     const results = looked.filter((r): r is Recommendation => r !== null);
-    return NextResponse.json({ results });
+    return NextResponse.json({ results: await attachRatings(results) });
   } catch (error) {
     console.error("Vibe search failed:", error);
     if (error instanceof ApiError && (error.status === 429 || error.status === 503)) {

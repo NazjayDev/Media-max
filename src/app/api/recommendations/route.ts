@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRecommendationsWithProviders } from "@/lib/tmdb";
 import { titleRecommendations } from "@/lib/recommend";
+import { attachRatings } from "@/lib/ratings";
 import type { MediaType } from "@/types/media";
 
 export const maxDuration = 30;
@@ -23,13 +24,13 @@ export async function GET(request: NextRequest) {
   try {
     try {
       const refined = await titleRecommendations(mediaType, Number(id));
-      return NextResponse.json({ results: refined });
+      return NextResponse.json({ results: await attachRatings(refined) });
     } catch (error) {
       console.error("Refined recommendations failed, using TMDB fallback:", error);
     }
 
     const recommendations = await getRecommendationsWithProviders(mediaType, Number(id));
-    return NextResponse.json({ results: recommendations });
+    return NextResponse.json({ results: await attachRatings(recommendations) });
   } catch (error) {
     console.error("TMDB recommendations failed:", error);
     return NextResponse.json({ error: "Failed to fetch recommendations" }, { status: 502 });

@@ -1,13 +1,15 @@
 import Image from "next/image";
 import SaveButton from "@/components/SaveButton";
+import RatingChips from "@/components/RatingChips";
 import type { Recommendation } from "@/types/media";
 
 interface RecommendationCardProps {
   item: Recommendation;
   index: number;
+  footer?: React.ReactNode;
 }
 
-export default function RecommendationCard({ item, index }: RecommendationCardProps) {
+export default function RecommendationCard({ item, index, footer }: RecommendationCardProps) {
   return (
     <article
       className="animate-fade-up group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-from/10"
@@ -15,6 +17,7 @@ export default function RecommendationCard({ item, index }: RecommendationCardPr
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
         <SaveButton item={item} />
+        <RatingChips ratings={item.ratings} />
         {item.posterPath ? (
           <Image
             src={item.posterPath}
@@ -73,6 +76,7 @@ export default function RecommendationCard({ item, index }: RecommendationCardPr
             <p className="text-xs text-muted">Not currently available to stream</p>
           )}
         </div>
+        {footer}
       </div>
     </article>
   );

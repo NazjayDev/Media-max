@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { cached } from "@/lib/cache";
 import {
   catalogKey,
@@ -194,6 +195,48 @@ They want titles a fan of this would love next.`,
         error instanceof Error ? error.message.slice(0, 120) : error,
       );
       throw new DegradedResults(await hydrateUnrefined(candidates, 10));
+    }
+  }).catch((error) => {
+    if (error instanceof DegradedResults) return error.results;
+    throw error;
+  });
+}
+
+/** Personalised picks: average the embeddings of titles the user liked, then refine the neighbours. */
+export async function personalRecommendations(
+  likedKeys: string[],
+  excludeKeys: string[]
+): Promise<Recommendation[]> {
+  const cacheKey = `picks:${createHash("sha1").update([...likedKeys].sort().join("|")).digest("hex")}`;
+  return cached(cacheKey, DAY_SECONDS, async () => {
+    const entries = (await Promise.all(likedKeys.map((k) => getCatalogEntry(k)))).filter(
+      (e): e is NonNullable<typeof e> & { embedding: number[] } => !!e?.embedding
+    );
+    if (entries.length === 0) return [];
+
+    const dims = entries[0].embedding.length;
+    const mean = new Array<number>(dims).fill(0);
+    for (const e of entries) {
+      for (let i = 0; i < dims; i++) mean[i] += e.embedding[i] / entries.length;
+    }
+
+    const nearest = await nearestTitles(mean, { limit: 30, excludeKeys });
+    if (nearest.length < 6) return [];
+
+    const candidates = nearest.map(fromCatalog);
+    try {
+      const refined = await refineCandidates(
+        `The user enjoyed these titles: ${entries
+          .map((e) => `${e.title} (${e.genres.join("/")})`)
+          .join("; ")}.
+Recommend titles that fit their overall taste, weighing what these have in common.`,
+        candidates,
+        { max: 8, min: 5 }
+      );
+      return await hydrate(candidates, refined);
+    } catch (error) {
+      console.error("Picks refinement unavailable:", error instanceof Error ? error.message.slice(0, 120) : error);
+      throw new DegradedResults(await hydrateUnrefined(candidates, 8));
     }
   }).catch((error) => {
     if (error instanceof DegradedResults) return error.results;

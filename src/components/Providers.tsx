@@ -2,14 +2,16 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { SessionProvider, signIn, useSession } from "next-auth/react";
-import type { Recommendation } from "@/types/media";
+import type { Recommendation, WatchStatus, WatchlistEntry } from "@/types/media";
 
 interface WatchlistContextValue {
-  items: Recommendation[];
+  items: WatchlistEntry[];
   loading: boolean;
   signedIn: boolean;
   isSaved: (item: Recommendation) => boolean;
   toggle: (item: Recommendation) => Promise<void>;
+  setStatus: (item: Recommendation, status: WatchStatus) => Promise<void>;
+  setRating: (item: Recommendation, rating: number | null) => Promise<void>;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue | null>(null);
@@ -27,7 +29,7 @@ const keyOf = (item: Pick<Recommendation, "mediaType" | "id">) => `${item.mediaT
 function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
   const signedIn = status === "authenticated";
-  const [fetchedItems, setItems] = useState<Recommendation[]>([]);
+  const [fetchedItems, setItems] = useState<WatchlistEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const loading = signedIn && !loaded;
   const items = useMemo(() => (signedIn ? fetchedItems : []), [signedIn, fetchedItems]);
@@ -65,7 +67,9 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
       const alreadySaved = saved.has(keyOf(item));
       // Optimistic update, rolled back if the request fails.
       setItems((prev) =>
-        alreadySaved ? prev.filter((i) => keyOf(i) !== keyOf(item)) : [item, ...prev]
+        alreadySaved
+          ? prev.filter((i) => keyOf(i) !== keyOf(item))
+          : [{ ...item, status: "want" as const, userRating: null }, ...prev]
       );
 
       try {
@@ -81,16 +85,45 @@ function WatchlistProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error("request failed");
       } catch {
         setItems((prev) =>
-          alreadySaved ? [item, ...prev] : prev.filter((i) => keyOf(i) !== keyOf(item))
+          alreadySaved
+            ? [{ ...item, status: "want" as const, userRating: null }, ...prev]
+            : prev.filter((i) => keyOf(i) !== keyOf(item))
         );
       }
     },
     [signedIn, saved]
   );
 
+  const patch = useCallback(
+    async (item: Recommendation, change: { status?: WatchStatus; userRating?: number | null }) => {
+      const before = items;
+      setItems((prev) => prev.map((i) => (keyOf(i) === keyOf(item) ? { ...i, ...change } : i)));
+      try {
+        const res = await fetch("/api/watchlist", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mediaType: item.mediaType, id: item.id, ...change }),
+        });
+        if (!res.ok) throw new Error("request failed");
+      } catch {
+        setItems(before);
+      }
+    },
+    [items]
+  );
+
+  const setStatus = useCallback(
+    (item: Recommendation, status: WatchStatus) => patch(item, { status }),
+    [patch]
+  );
+  const setRating = useCallback(
+    (item: Recommendation, userRating: number | null) => patch(item, { userRating }),
+    [patch]
+  );
+
   const value = useMemo(
-    () => ({ items, loading, signedIn, isSaved, toggle }),
-    [items, loading, signedIn, isSaved, toggle]
+    () => ({ items, loading, signedIn, isSaved, toggle, setStatus, setRating }),
+    [items, loading, signedIn, isSaved, toggle, setStatus, setRating]
   );
 
   return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;

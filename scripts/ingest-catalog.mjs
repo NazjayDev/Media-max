@@ -117,9 +117,12 @@ async function main() {
       (d) => d._id
     )
   );
+  // INGEST_LIMIT caps texts embedded per run, leaving daily quota for live searches.
+  const limit = Number(process.env.INGEST_LIMIT || Infinity);
   const todo = [...found.values()]
     .filter((d) => !existing.has(d._id))
-    .sort((a, b) => b.voteCount - a.voteCount);
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .slice(0, limit);
   console.log(`Already embedded: ${existing.size}. To embed now: ${todo.length}`);
 
   const BATCH = 50; // free tier allows 100 embed requests/min, one per text

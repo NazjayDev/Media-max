@@ -22,7 +22,7 @@ export const catalogKey = (mediaType: MediaType, id: number) => `${mediaType}:${
 /** Nearest catalog titles to a query vector. Returns [] if the catalog isn't available. */
 export async function nearestTitles(
   vector: number[],
-  options: { limit?: number; excludeKey?: string } = {}
+  options: { limit?: number; excludeKey?: string; excludeKeys?: string[] } = {}
 ): Promise<CatalogTitle[]> {
   const db = await getDb();
   if (!db) return [];
@@ -38,14 +38,15 @@ export async function nearestTitles(
             path: "embedding",
             queryVector: vector,
             numCandidates: Math.max(150, limit * 5),
-            limit: limit + 1,
+            limit: limit + (options.excludeKeys?.length ?? 0) + 1,
           },
         },
         { $addFields: { score: { $meta: "vectorSearchScore" } } },
         { $project: PROJECTION },
       ])
       .toArray();
-    return docs.filter((d) => d._id !== options.excludeKey).slice(0, limit);
+    const excluded = new Set([...(options.excludeKeys ?? []), options.excludeKey]);
+    return docs.filter((d) => !excluded.has(d._id)).slice(0, limit);
   } catch (error) {
     console.error("Vector search failed:", error instanceof Error ? error.message : error);
     return [];

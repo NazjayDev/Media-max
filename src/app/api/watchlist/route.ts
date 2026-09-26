@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/mongodb";
-import type { Recommendation, StreamingProvider } from "@/types/media";
+import { attachRatings } from "@/lib/ratings";
+import type { Recommendation, StreamingProvider, WatchStatus, WatchlistEntry } from "@/types/media";
 
 interface WatchlistDoc {
   userId: string;
   key: string;
   item: Recommendation;
   addedAt: Date;
+  status?: WatchStatus;
+  userRating?: number | null;
 }
+
+const STATUSES: WatchStatus[] = ["want", "watching", "watched"];
 
 const MAX_ITEMS_PER_USER = 500;
 const TMDB_IMAGE_PREFIX = "https://image.tmdb.org/";
@@ -81,7 +86,12 @@ export async function GET() {
     .limit(MAX_ITEMS_PER_USER)
     .toArray();
 
-  return NextResponse.json({ results: docs.map((d) => d.item) });
+  const entries: WatchlistEntry[] = docs.map((d) => ({
+    ...d.item,
+    status: d.status ?? "want",
+    userRating: d.userRating ?? null,
+  }));
+  return NextResponse.json({ results: await attachRatings(entries) });
 }
 
 export async function POST(request: NextRequest) {
@@ -100,7 +110,10 @@ export async function POST(request: NextRequest) {
 
   await ctx.collection.updateOne(
     { userId: ctx.userId, key: itemKey(item.mediaType, item.id) },
-    { $set: { item }, $setOnInsert: { addedAt: new Date() } },
+    {
+      $set: { item },
+      $setOnInsert: { addedAt: new Date(), status: "want", userRating: null },
+    },
     { upsert: true }
   );
 
@@ -118,5 +131,52 @@ export async function DELETE(request: NextRequest) {
   }
 
   await ctx.collection.deleteOne({ userId: ctx.userId, key: itemKey(mediaType, id) });
+  return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(request: NextRequest) {
+  const ctx = await requireUserAndDb();
+  if ("error" in ctx) return ctx.error;
+
+  const body = (await request.json().catch(() => null)) as {
+    mediaType?: string;
+    id?: number;
+    status?: string;
+    userRating?: number | null;
+  } | null;
+
+  if (
+    !body ||
+    (body.mediaType !== "movie" && body.mediaType !== "tv") ||
+    !Number.isInteger(body.id)
+  ) {
+    return NextResponse.json({ error: "Invalid item" }, { status: 400 });
+  }
+
+  const update: Partial<Pick<WatchlistDoc, "status" | "userRating">> = {};
+  if (body.status !== undefined) {
+    if (!STATUSES.includes(body.status as WatchStatus)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    update.status = body.status as WatchStatus;
+  }
+  if (body.userRating !== undefined) {
+    const r = body.userRating;
+    if (r !== null && !(Number.isInteger(r) && r >= 1 && r <= 5)) {
+      return NextResponse.json({ error: "Invalid rating" }, { status: 400 });
+    }
+    update.userRating = r;
+  }
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const result = await ctx.collection.updateOne(
+    { userId: ctx.userId, key: itemKey(body.mediaType, body.id as number) },
+    { $set: update }
+  );
+  if (result.matchedCount === 0) {
+    return NextResponse.json({ error: "Not in watchlist" }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }
