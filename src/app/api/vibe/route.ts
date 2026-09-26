@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { ApiError } from "@google/genai";
 import { suggestByVibe } from "@/lib/vibe";
 import { lookupRecommendation } from "@/lib/tmdb";
 import type { Recommendation } from "@/types/media";
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "Vibe search is not configured" }, { status: 503 });
   }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (error) {
     console.error("Vibe search failed:", error);
-    if (error instanceof Anthropic.RateLimitError) {
+    if (error instanceof ApiError && error.status === 429) {
       return NextResponse.json({ error: "Vibe search is busy, try again shortly" }, { status: 429 });
     }
     return NextResponse.json({ error: "Failed to run vibe search" }, { status: 502 });
