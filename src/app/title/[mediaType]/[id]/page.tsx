@@ -72,13 +72,14 @@ export default function TitlePage() {
 
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                Where to stream
+                Where to stream (tap a service to open it)
               </p>
               {item.streamingProviders.length > 0 ? (
                 <ProviderLogos
                   providers={item.streamingProviders}
                   title={item}
                   size={36}
+                  label=""
                   className="flex flex-wrap gap-2"
                 />
               ) : (

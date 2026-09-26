@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import GenreChips from "@/components/GenreChips";
+import HowItWorks from "@/components/HowItWorks";
 import PosterReel, { type ReelKind } from "@/components/PosterReel";
 import RecentSearches from "@/components/RecentSearches";
 import SearchedPanel from "@/components/SearchedPanel";
@@ -335,9 +336,13 @@ export default function Home() {
         unoptimized
         className="h-auto w-[min(660px,92vw)]"
       />
+      <p className="mt-4 max-w-xl text-center text-base leading-7 text-muted sm:text-lg">
+        Name a movie, show or anime you love, or describe a mood. Media Max picks what to watch next
+        and shows where to stream it.
+      </p>
 
       {/* The reel breaks out of the page padding so it runs edge to edge, tilted like a strip in motion. */}
-      <div className="relative left-1/2 mt-2 w-[104vw] -translate-x-1/2 -rotate-[1.2deg] sm:mt-4">
+      <div className="relative left-1/2 mt-7 w-[104vw] -translate-x-1/2 -rotate-[1.2deg] sm:mt-9">
         <PosterReel kind={reelKind} />
       </div>
 
@@ -371,7 +376,7 @@ export default function Home() {
 
       <nav
         aria-label="Explore"
-        className="mt-5 flex w-full max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-3 sm:justify-around sm:gap-x-8"
+        className="mt-5 grid w-full max-w-xl grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4"
       >
         {[
           ["/community", "Community"],
@@ -382,7 +387,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="font-[family-name:var(--font-display)] text-base font-extrabold uppercase tracking-wide underline decoration-accent-to decoration-2 underline-offset-8 transition hover:text-accent-from sm:text-xl"
+            className="flex min-h-12 items-center justify-center bg-surface px-3 text-center font-[family-name:var(--font-display)] text-sm font-extrabold uppercase tracking-wide transition hover:bg-accent-to/10 hover:text-accent-from"
           >
             {label}
           </Link>
@@ -425,6 +430,8 @@ export default function Home() {
           Search without recommendations
         </Link>
       </p>
+
+      {status === "idle" && <HowItWorks />}
 
       <section
         aria-label="Other ways to choose"

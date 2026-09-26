@@ -20,6 +20,8 @@ export interface BrowsePage {
   hasMore: boolean;
 }
 
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 function typeFilter(type: BrowseType): Record<string, unknown> {
   if (type === "anime") return { anime: true };
   if (type === "movie") return { mediaType: "movie", anime: { $ne: true } };
@@ -33,10 +35,12 @@ export async function browseTitles(
   type: BrowseType,
   sort: BrowseSort,
   page: number,
+  search = "",
 ): Promise<BrowsePage> {
   const names = GENRES.find((g) => g.label === genre)?.names;
+  const text = search.trim().toLowerCase();
   return cached(
-    `browse1:${genre ?? "all"}:${type}:${sort}:${page}`,
+    `browse2:${genre ?? "all"}:${type}:${sort}:${page}:${text}`,
     BROWSE_TTL_SECONDS,
     async () => {
       const db = await getDb();
@@ -47,6 +51,8 @@ export async function browseTitles(
         ...(names ? { genres: { $in: names } } : {}),
         ...(sort === "rating" ? { voteCount: { $gte: MIN_VOTES_FOR_RATING } } : {}),
         posterPath: { $ne: null },
+        // The typed name is matched as plain text, never as a pattern, so it can't change the query.
+        ...(text.length >= 2 ? { title: { $regex: escapeRegex(text), $options: "i" } } : {}),
       };
       const docs = await db
         .collection<CatalogTitle & { voteAverage: number; voteCount: number }>("titles")

@@ -80,7 +80,7 @@ export default function SearchBar({
             placeholder={
               mode === "vibe"
                 ? "Describe a vibe, e.g. cozy rainy-day sci-fi with heart..."
-                : "Enter a movie, show, or anime title..."
+                : "Name a movie, show or anime you love..."
             }
             ariaLabel={mode === "vibe" ? "Vibe to search for" : "Title to search for"}
             leading={

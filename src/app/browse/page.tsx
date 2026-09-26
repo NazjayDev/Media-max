@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecommendationCard from "@/components/RecommendationCard";
@@ -40,12 +40,15 @@ function BrowseInner() {
   const genre = GENRES.some((g) => g.label === params.get("genre")) ? params.get("genre")! : "";
   const type = TYPES.find(([t]) => t === params.get("type"))?.[0] ?? "all";
   const sort = SORTS.find(([s]) => s === params.get("sort"))?.[0] ?? "popular";
+  const q = params.get("q")?.trim().slice(0, 60) ?? "";
+  const [draft, setDraft] = useState(q);
+  const typing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const { seen, markSeen } = useSeen();
   const [undo, setUndo] = useState<UndoState | null>(null);
 
   // The first page comes from the address; more pages are added below it and belong to that address.
-  const query = `genre=${encodeURIComponent(genre)}&type=${type}&sort=${sort}`;
+  const query = `genre=${encodeURIComponent(genre)}&type=${type}&sort=${sort}&q=${encodeURIComponent(q)}`;
   const first = useJson<Page>(`/api/browse?${query}&page=0`);
   const [extra, setExtra] = useState<{
     query: string;
@@ -57,9 +60,10 @@ function BrowseInner() {
   const [error, setError] = useState("");
   const more = extra?.query === query ? extra : null;
 
-  function go(next: { genre?: string; type?: string; sort?: string }) {
-    const merged = { genre, type, sort, ...next };
+  function go(next: { genre?: string; type?: string; sort?: string; q?: string }) {
+    const merged = { genre, type, sort, q, ...next };
     const qs = new URLSearchParams();
+    if (merged.q) qs.set("q", merged.q);
     if (merged.genre) qs.set("genre", merged.genre);
     if (merged.type !== "all") qs.set("type", merged.type);
     if (merged.sort !== "popular") qs.set("sort", merged.sort);
@@ -90,7 +94,15 @@ function BrowseInner() {
   const all = [...(first.data?.results ?? []), ...(more?.results ?? [])];
   const visible = all.filter((r) => !seen.has(`${r.mediaType}:${r.id}`));
   const hasMore = more ? more.hasMore : (first.data?.hasMore ?? false);
-  const title = `${genre || "All genres"}${type === "all" ? "" : ` in ${TYPES.find(([t]) => t === type)![1]}`}`;
+  const scope = `${genre || "All genres"}${type === "all" ? "" : ` in ${TYPES.find(([t]) => t === type)![1]}`}`;
+  const title = q.length >= 2 ? `\u201c${q}\u201d in ${scope}` : scope;
+
+  // Waits a moment after the last keystroke, so typing doesn't search on every letter.
+  function onType(value: string) {
+    setDraft(value);
+    clearTimeout(typing.current);
+    typing.current = setTimeout(() => go({ q: value.trim() }), 350);
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-24 sm:px-8">
@@ -104,6 +116,51 @@ function BrowseInner() {
         Pick a genre and a type to see what&apos;s popular or best rated. Open anything to get
         recommendations like it.
       </p>
+
+      <form
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          clearTimeout(typing.current);
+          go({ q: draft.trim() });
+        }}
+        className="relative mt-6 max-w-xl"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m16 16 4.5 4.5" strokeLinecap="round" />
+        </svg>
+        <input
+          type="search"
+          value={draft}
+          onChange={(e) => onType(e.target.value)}
+          maxLength={60}
+          placeholder={genre ? `Search ${genre} titles by name...` : "Search titles by name..."}
+          aria-label="Search these titles by name"
+          className="w-full rounded-full border border-border bg-surface py-3 pl-12 pr-11 text-base outline-none focus:border-accent-from focus:ring-4 focus:ring-accent-from/20"
+        />
+        {draft && (
+          <button
+            type="button"
+            onClick={() => {
+              clearTimeout(typing.current);
+              setDraft("");
+              go({ q: "" });
+            }}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 text-xl leading-none text-muted hover:text-foreground"
+          >
+            &times;
+          </button>
+        )}
+      </form>
 
       <div className="mt-6 flex flex-col gap-4">
         <div role="group" aria-label="Type" className="flex flex-wrap gap-2">
@@ -181,7 +238,20 @@ function BrowseInner() {
       )}
       {!first.loading && !first.failed && all.length === 0 && (
         <p className="mt-6 rounded-lg border border-border bg-surface px-6 py-8 text-center text-muted">
-          Nothing in the catalog matches that yet. Try another genre or type.
+          {q.length >= 2 ? (
+            <>
+              Nothing called &ldquo;{q}&rdquo; in {scope.toLowerCase()}.{" "}
+              <Link
+                href={`/search?q=${encodeURIComponent(q)}`}
+                className="font-semibold text-accent-from underline-offset-2 hover:underline"
+              >
+                Look it up across every title
+              </Link>
+              .
+            </>
+          ) : (
+            "Nothing in the catalog matches that yet. Try another genre or type."
+          )}
         </p>
       )}
       {hasMore && !first.loading && (

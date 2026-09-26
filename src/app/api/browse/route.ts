@@ -12,9 +12,10 @@ export async function GET(request: NextRequest) {
   const type = BROWSE_TYPES.find((t) => t === p.get("type")) ?? "all";
   const sort = BROWSE_SORTS.find((s) => s === p.get("sort")) ?? "popular";
   const page = Math.min(Math.max(Number(p.get("page")) || 0, 0), 40);
+  const search = p.get("q")?.trim().slice(0, 60) ?? "";
 
   try {
-    const { results, hasMore } = await browseTitles(genre, type, sort, page);
+    const { results, hasMore } = await browseTitles(genre, type, sort, page, search);
     return NextResponse.json({ results: await attachRatings(results), hasMore });
   } catch (error) {
     console.error("Browse failed:", error instanceof Error ? error.message : error);
