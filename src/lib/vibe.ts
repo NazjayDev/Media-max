@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { ApiError, GoogleGenAI, Type } from "@google/genai";
 import type { MediaType } from "@/types/media";
 
 export interface VibeSuggestion {
@@ -43,19 +43,36 @@ function isSuggestion(value: unknown): value is VibeSuggestion {
   );
 }
 
+const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"];
+
+function isBusy(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 503 || error.status === 429);
+}
+
 export async function suggestByVibe(vibe: string): Promise<VibeSuggestion[]> {
   const ai = new GoogleGenAI({});
+  let lastError: unknown;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: `Vibe: ${vibe}`,
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: "application/json",
-      responseJsonSchema: RESPONSE_SCHEMA,
-    },
-  });
+  for (const model of MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: `Vibe: ${vibe}`,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: "application/json",
+          responseJsonSchema: RESPONSE_SCHEMA,
+          httpOptions: { timeout: 12000 },
+        },
+      });
 
-  const parsed: unknown = JSON.parse(response.text ?? "[]");
-  return Array.isArray(parsed) ? parsed.filter(isSuggestion) : [];
+      const parsed: unknown = JSON.parse(response.text ?? "[]");
+      return Array.isArray(parsed) ? parsed.filter(isSuggestion) : [];
+    } catch (error) {
+      lastError = error;
+      if (!isBusy(error)) throw error;
+    }
+  }
+
+  throw lastError;
 }

@@ -4,6 +4,8 @@ import { suggestByVibe } from "@/lib/vibe";
 import { lookupRecommendation } from "@/lib/tmdb";
 import type { Recommendation } from "@/types/media";
 
+export const maxDuration = 30;
+
 const MAX_VIBE_LENGTH = 300;
 
 export async function GET(request: NextRequest) {
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (error) {
     console.error("Vibe search failed:", error);
-    if (error instanceof ApiError && error.status === 429) {
+    if (error instanceof ApiError && (error.status === 429 || error.status === 503)) {
       return NextResponse.json({ error: "Vibe search is busy, try again shortly" }, { status: 429 });
     }
     return NextResponse.json({ error: "Failed to run vibe search" }, { status: 502 });
