@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import MicButton from "@/components/MicButton";
 
 export type SearchMode = "title" | "vibe";
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (query: string, viaVoice?: boolean) => void;
   disabled: boolean;
   mode: SearchMode;
   onModeChange: (mode: SearchMode) => void;
@@ -52,7 +53,7 @@ export default function SearchBar({ onSearch, disabled, mode, onModeChange }: Se
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 sm:flex-row sm:gap-2">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:gap-2">
         <input
           type="text"
           value={value}
@@ -65,8 +66,18 @@ export default function SearchBar({ onSearch, disabled, mode, onModeChange }: Se
           }
           aria-label={mode === "vibe" ? "Vibe to search for" : "Title to search for"}
           disabled={disabled}
-          className="min-w-0 flex-1 rounded-full border border-border bg-surface px-5 py-3.5 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-full border border-border bg-surface px-5 py-3 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
         />
+        <div className="flex justify-center sm:block">
+          <MicButton
+            disabled={disabled}
+            onTranscript={(text) => {
+              const cleaned = text.replace(/[.!?]+$/, "").trim();
+              setValue(cleaned);
+              onSearch(cleaned, true);
+            }}
+          />
+        </div>
         <button
           type="submit"
           disabled={disabled || !value.trim()}

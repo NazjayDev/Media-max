@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
+import NarrateButton from "@/components/NarrateButton";
 import type { Recommendation, SearchResult } from "@/types/media";
 
 type Status = "idle" | "loading" | "error" | "success";
@@ -15,8 +16,23 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [mode, setMode] = useState<SearchMode>("title");
   const [vibeQuery, setVibeQuery] = useState("");
+  const [narrateToken, setNarrateToken] = useState(0);
 
-  async function handleVibeSearch(vibe: string) {
+  const narrationScript = useMemo(() => {
+    const intro = matchedTitle
+      ? `Because you liked ${matchedTitle.title}, here are my top picks.`
+      : `Here are my picks for the vibe: ${vibeQuery}.`;
+    const ordinals = ["One", "Two", "Three"];
+    let script = intro;
+    recommendations.slice(0, 3).forEach((rec, i) => {
+      const reason = (rec.why || rec.blurb || "").replace(/\s+/g, " ").trim();
+      const line = ` ${ordinals[i]}: ${rec.title}. ${reason.slice(0, 120)}`;
+      if (script.length + line.length <= 650) script += line;
+    });
+    return script;
+  }, [matchedTitle, vibeQuery, recommendations]);
+
+  async function handleVibeSearch(vibe: string, viaVoice = false) {
     setStatus("loading");
     setErrorMessage("");
     setRecommendations([]);
@@ -47,15 +63,25 @@ export default function Home() {
 
       setRecommendations(data.results);
       setStatus("success");
+      if (viaVoice) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
     }
   }
 
-  async function handleSearch(query: string) {
+  async function handleSearch(rawQuery: string, viaVoice = false) {
+    // Spoken requests often sound like "movies like Interstellar"; search by the title itself.
+    const query =
+      mode === "title" && viaVoice
+        ? rawQuery.replace(
+            /^(?:(?:show|find|give) me |i(?:'d| would) like |i want |recommend )?(?:some )?(?:movies?|shows?|series|anime|films?|something|stuff)? ?(?:like|similar to) /i,
+            ""
+          )
+        : rawQuery;
+
     if (mode === "vibe") {
-      return handleVibeSearch(query);
+      return handleVibeSearch(query, viaVoice);
     }
 
     setStatus("loading");
@@ -99,6 +125,7 @@ export default function Home() {
 
       setRecommendations(recsData.results);
       setStatus("success");
+      if (viaVoice) setNarrateToken((t) => t + 1);
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setStatus("error");
@@ -157,6 +184,9 @@ export default function Home() {
                 {matchedTitle ? matchedTitle.title : `"${vibeQuery}"`}
               </span>
             </p>
+            <div className="mb-6 flex justify-center">
+              <NarrateButton script={narrationScript} autoPlayToken={narrateToken} />
+            </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
               {recommendations.map((item, i) => (
                 <RecommendationCard key={item.id} item={item} index={i} />
