@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import SearchBar from "@/components/SearchBar";
+import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import type { Recommendation, SearchResult } from "@/types/media";
@@ -13,8 +13,51 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [matchedTitle, setMatchedTitle] = useState<SearchResult | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [mode, setMode] = useState<SearchMode>("title");
+  const [vibeQuery, setVibeQuery] = useState("");
+
+  async function handleVibeSearch(vibe: string) {
+    setStatus("loading");
+    setErrorMessage("");
+    setRecommendations([]);
+    setMatchedTitle(null);
+    setVibeQuery(vibe);
+
+    try {
+      const res = await fetch(`/api/vibe?vibe=${encodeURIComponent(vibe)}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMessage(
+          res.status === 503
+            ? "Vibe search isn't available right now."
+            : res.status === 429
+              ? "Vibe search is busy. Try again in a moment."
+              : "Couldn't run vibe search. Please try again."
+        );
+        setStatus("error");
+        return;
+      }
+
+      if (!data.results || data.results.length === 0) {
+        setErrorMessage(`No matches found for that vibe. Try describing it differently.`);
+        setStatus("error");
+        return;
+      }
+
+      setRecommendations(data.results);
+      setStatus("success");
+    } catch {
+      setErrorMessage("Network error. Please check your connection and try again.");
+      setStatus("error");
+    }
+  }
 
   async function handleSearch(query: string) {
+    if (mode === "vibe") {
+      return handleVibeSearch(query);
+    }
+
     setStatus("loading");
     setErrorMessage("");
     setRecommendations([]);
@@ -79,7 +122,12 @@ export default function Home() {
         </p>
 
         <div className="mt-4 flex w-full justify-center sm:mt-6">
-          <SearchBar onSearch={handleSearch} disabled={status === "loading"} />
+          <SearchBar
+            onSearch={handleSearch}
+            disabled={status === "loading"}
+            mode={mode}
+            onModeChange={setMode}
+          />
         </div>
       </header>
 
@@ -101,11 +149,13 @@ export default function Home() {
           </p>
         )}
 
-        {status === "success" && matchedTitle && (
+        {status === "success" && (matchedTitle || vibeQuery) && (
           <>
             <p className="animate-fade-up mb-6 text-center text-sm text-muted">
-              Because you searched for{" "}
-              <span className="font-semibold text-foreground">{matchedTitle.title}</span>
+              {matchedTitle ? "Because you searched for" : "Matching the vibe"}{" "}
+              <span className="font-semibold text-foreground">
+                {matchedTitle ? matchedTitle.title : `"${vibeQuery}"`}
+              </span>
             </p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
               {recommendations.map((item, i) => (
