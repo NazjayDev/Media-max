@@ -115,6 +115,33 @@ export default function Home() {
           </>
         )}
       </main>
+
+      <footer className="mt-auto w-full max-w-5xl pt-16 text-center text-xs leading-5 text-muted">
+        <p>
+          This product uses the{" "}
+          <a
+            href="https://www.themoviedb.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            TMDB
+          </a>{" "}
+          API but is not endorsed or certified by TMDB.
+        </p>
+        <p>
+          Streaming availability data provided by{" "}
+          <a
+            href="https://www.justwatch.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            JustWatch
+          </a>
+          .
+        </p>
+      </footer>
     </div>
   );
 }
