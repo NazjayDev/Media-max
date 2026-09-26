@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReelItem } from "@/app/api/reel/route";
@@ -8,11 +9,24 @@ import { useJson } from "@/lib/useJson";
 export type ReelKind = "movie" | "tv" | "anime" | null;
 
 const PLACEHOLDER_FRAMES = 14;
+const MAX_RETRIES = 4;
 
 /** A strip of film scrolling across the page, each frame holding a real poster. */
 export default function PosterReel({ kind }: { kind: ReelKind }) {
-  const { data } = useJson<{ results: ReelItem[] }>(`/api/reel?kind=${kind ?? "all"}`);
+  // If the poster list fails to arrive (or comes back empty), try again a few times instead of
+  // leaving empty frames on the front page for good.
+  const [attempt, setAttempt] = useState(0);
+  const { data, failed } = useJson<{ results: ReelItem[] }>(
+    `/api/reel?kind=${kind ?? "all"}`,
+    attempt,
+  );
   const items = data?.results ?? [];
+  const missing = failed || (data !== null && items.length === 0);
+  useEffect(() => {
+    if (!missing || attempt >= MAX_RETRIES) return;
+    const timer = setTimeout(() => setAttempt((a) => a + 1), 2500 * (attempt + 1));
+    return () => clearTimeout(timer);
+  }, [missing, attempt]);
   const frames = items.length > 0 ? items : null;
   const count = frames?.length ?? PLACEHOLDER_FRAMES;
 
@@ -48,7 +62,12 @@ export default function PosterReel({ kind }: { kind: ReelKind }) {
                   fill
                   sizes="(max-width: 640px) 100px, 132px"
                   className="object-cover"
-                  priority={copy === 0 && i < 6}
+                  // Never lazy: the reel moves by animation alone, and browsers only re-check what is
+                  // near the screen when something else happens (like the mouse moving), so lazy
+                  // posters could stay blank while the page sat untouched. The first few load first.
+                  {...(copy === 0 && i < 6
+                    ? { priority: true }
+                    : { loading: "eager" as const, fetchPriority: "low" as const })}
                 />
               </Link>
             ) : (
