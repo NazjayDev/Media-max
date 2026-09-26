@@ -349,7 +349,7 @@ export default function Home() {
       <div
         role="group"
         aria-label="Change the posters on the reel"
-        className="mt-8 flex items-center gap-2"
+        className="mt-6 flex items-center gap-2"
       >
         {(
           [
@@ -363,7 +363,7 @@ export default function Home() {
             type="button"
             aria-pressed={reelKind === kind}
             onClick={() => setReelKind(reelKind === kind ? null : kind)}
-            className={`min-h-11 min-w-[5.5rem] rounded-md border px-5 text-sm font-bold transition ${
+            className={`min-h-9 min-w-[4.5rem] rounded-full border px-4 text-xs font-bold transition ${
               reelKind === kind
                 ? "border-accent-to bg-accent-to text-[var(--on-accent)]"
                 : "border-border bg-surface text-foreground hover:border-accent-to hover:text-accent-from"
@@ -376,7 +376,7 @@ export default function Home() {
 
       <nav
         aria-label="Explore"
-        className="mt-5 grid w-full max-w-xl grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4"
+        className="mt-6 grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-4"
       >
         {[
           ["/community", "Community"],
@@ -387,7 +387,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="flex min-h-12 items-center justify-center bg-surface px-3 text-center font-[family-name:var(--font-display)] text-sm font-extrabold uppercase tracking-wide transition hover:bg-accent-to/10 hover:text-accent-from"
+            className="flex min-h-12 items-center justify-center rounded-md border border-border bg-surface px-3 text-center font-[family-name:var(--font-display)] text-sm font-extrabold uppercase tracking-wide transition hover:border-accent-to hover:text-accent-from"
           >
             {label}
           </Link>
