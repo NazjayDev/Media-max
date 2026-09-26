@@ -29,11 +29,11 @@ export default function AuthButton() {
     <div className="flex items-center gap-2 text-sm sm:gap-3">
       <Link
         href="/dashboard"
-        className="whitespace-nowrap rounded-full border border-border bg-surface px-3 py-2 font-medium transition hover:border-accent-from sm:px-4"
+        className="whitespace-nowrap rounded-full border border-border bg-surface px-2.5 py-2 font-medium transition hover:border-accent-from sm:px-4"
       >
         <span className="sm:hidden">Dashboard</span>
         <span className="hidden sm:inline">My dashboard</span>
-        {items.length > 0 ? ` (${items.length})` : ""}
+        {items.length > 0 && <span className="hidden sm:inline"> ({items.length})</span>}
       </Link>
       {session.user.image && (
         <Image
@@ -42,7 +42,7 @@ export default function AuthButton() {
           width={32}
           height={32}
           referrerPolicy="no-referrer"
-          className="rounded-full ring-1 ring-border"
+          className="hidden rounded-full ring-1 ring-border sm:block"
         />
       )}
       <button

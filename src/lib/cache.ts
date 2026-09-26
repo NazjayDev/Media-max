@@ -6,6 +6,27 @@ interface CacheEntry {
   expiresAt: Date;
 }
 
+const LOADER_CONCURRENCY = 20;
+
+/** Runs `fn` over items with at most `limit` calls in flight, keeping input order. */
+async function mapLimit<I, O>(
+  items: I[],
+  limit: number,
+  fn: (item: I) => Promise<O>,
+): Promise<O[]> {
+  const results: O[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await fn(items[i]);
+      }
+    }),
+  );
+  return results;
+}
+
 async function cacheCollection() {
   const db = await getDb();
   if (!db) return null;
@@ -71,7 +92,7 @@ export async function cachedMany<T>(
   }
 
   const misses = keys.filter((k) => !hits.has(k));
-  const loaded = await Promise.all(misses.map(loader));
+  const loaded = await mapLimit(misses, LOADER_CONCURRENCY, loader);
   const writes: { key: string; value: T }[] = [];
   misses.forEach((k, i) => {
     const value = loaded[i];

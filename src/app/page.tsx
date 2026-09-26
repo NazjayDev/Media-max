@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import SearchBar, { type SearchMode } from "@/components/SearchBar";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -159,6 +160,16 @@ export default function Home() {
             onModeChange={setMode}
           />
         </div>
+        <p className="mt-1 text-sm text-muted">
+          Or{" "}
+          <Link
+            href="/ask"
+            className="font-semibold text-accent-from underline-offset-2 hover:underline dark:text-violet-300"
+          >
+            just ask Media Max
+          </Link>{" "}
+          in your own words, with limits like length or streaming service.
+        </p>
       </header>
 
       <main className="mt-10 w-full max-w-5xl sm:mt-14" aria-live="polite">

@@ -12,7 +12,7 @@ export default function VoiceToggle() {
       aria-checked={enabled}
       onClick={() => setVoiceReplies(!enabled)}
       title={enabled ? "Voice replies are on" : "Turn on spoken replies"}
-      className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-sm font-medium transition hover:border-accent-from"
+      className="flex items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-2 text-sm font-medium transition hover:border-accent-from"
     >
       <span aria-hidden>{enabled ? "🔊" : "🔈"}</span>
       <span className="hidden sm:inline">Voice replies</span>

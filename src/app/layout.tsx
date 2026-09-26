@@ -36,18 +36,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers>
-          <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-8">
+          <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-1.5 px-3 py-4 sm:gap-3 sm:px-8">
             <Link
               href="/"
               aria-label="Media Max home"
-              className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-sm font-extrabold transition hover:border-accent-from"
+              className="flex items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-2 text-sm font-extrabold transition hover:border-accent-from"
             >
               <span aria-hidden>&#8962;</span>
               <span className="hidden bg-gradient-to-r from-accent-from to-accent-to bg-clip-text text-transparent sm:inline">
                 Media Max
               </span>
             </Link>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              <Link
+                href="/ask"
+                className="rounded-full border border-accent-from/50 bg-accent-from/10 px-2.5 py-2 text-sm font-semibold transition hover:border-accent-from sm:px-4"
+              >
+                Ask
+              </Link>
               <Link
                 href="/trending"
                 className="hidden rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-accent-from sm:block"

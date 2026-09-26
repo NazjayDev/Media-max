@@ -16,7 +16,7 @@ function poster(path: string | null): string | null {
   return path ? `${TMDB_IMAGE_BASE_URL}/w342${path}` : null;
 }
 
-function fromCatalog(t: CatalogTitle): Candidate {
+export function fromCatalog(t: CatalogTitle): Candidate {
   return {
     key: t._id,
     id: t.tmdbId,
@@ -42,14 +42,17 @@ function shortBlurb(overview: string): string {
   return text.length > 150 ? `${text.slice(0, 147).trimEnd()}...` : text;
 }
 
-async function hydrateUnrefined(candidates: Candidate[], count: number): Promise<Recommendation[]> {
+export async function hydrateUnrefined(
+  candidates: Candidate[],
+  count: number,
+): Promise<Recommendation[]> {
   return hydrate(
     candidates,
     candidates.slice(0, count).map((c) => ({ key: c.key, blurb: shortBlurb(c.overview), why: "" })),
   );
 }
 
-async function hydrate(
+export async function hydrate(
   candidates: Candidate[],
   refined: { key: string; blurb: string; why: string }[],
 ): Promise<Recommendation[]> {
