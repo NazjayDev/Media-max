@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/together", label: "Watch Together" },
   { href: "/community", label: "Community" },
   { href: "/trending", label: "Trending" },
+  { href: "/roulette", label: "Media Roulette" },
   { href: "/browse", label: "Browse by genre" },
   { href: "/search", label: "Look up a title" },
   { href: "/dashboard", label: "My dashboard" },

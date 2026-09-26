@@ -369,3 +369,169 @@ a.reel-poster:focus-visible {
     animation: none;
   }
 }
+
+/* ---- Media Roulette: a tall strip of film that spins like a prize wheel. ---- */
+.roulette-window {
+  --rh: 190px; /* height of one frame */
+  --poster-h: calc(var(--rh) - 24px);
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  width: calc(var(--poster-h) * 2 / 3 + 84px);
+  height: calc(var(--rh) * 3);
+  background: #060403;
+  border: 2px solid rgba(247, 101, 0, 0.45);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 80px rgba(247, 101, 0, 0.12);
+}
+/* On short screens a smaller reel keeps the SPIN button in view. */
+@media (max-height: 860px) {
+  .roulette-window {
+    --rh: 150px;
+  }
+}
+@media (max-width: 640px) {
+  .roulette-window {
+    --rh: 150px;
+  }
+}
+/* The reel fades into darkness at the top and bottom, as if it curves away from you. */
+.roulette-window::before,
+.roulette-window::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: calc(var(--rh) * 0.85);
+  z-index: 2;
+  pointer-events: none;
+}
+.roulette-window::before {
+  top: 0;
+  background: linear-gradient(#060403, rgba(6, 4, 3, 0.55) 55%, transparent);
+}
+.roulette-window::after {
+  bottom: 0;
+  background: linear-gradient(transparent, rgba(6, 4, 3, 0.55) 45%, #060403);
+}
+.roulette-strip {
+  will-change: transform, filter;
+}
+.roulette-frame {
+  position: relative;
+  display: flex;
+  height: var(--rh);
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.07);
+}
+.roulette-frame::before,
+.roulette-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  background: var(--hole) repeat-y;
+  background-size: 22px 22px;
+  opacity: 0.85;
+}
+.roulette-frame::before {
+  left: 8px;
+}
+.roulette-frame::after {
+  right: 8px;
+}
+.roulette-poster {
+  width: auto;
+  height: var(--poster-h);
+  aspect-ratio: 2 / 3;
+  border-radius: 2px;
+  object-fit: cover;
+  background: #1b1612;
+}
+.roulette-empty {
+  display: block;
+  width: calc(var(--poster-h) * 2 / 3);
+}
+/* The lit frame in the middle: whatever stops here is the pick. */
+.roulette-payline {
+  position: absolute;
+  inset-inline: 4px;
+  top: var(--rh);
+  height: var(--rh);
+  z-index: 3;
+  pointer-events: none;
+  border: 3px solid var(--accent-to);
+  border-radius: 6px;
+  box-shadow:
+    0 0 22px rgba(247, 101, 0, 0.55),
+    inset 0 0 22px rgba(247, 101, 0, 0.2);
+}
+.roulette-payline.roulette-win {
+  animation: roulette-flash 0.9s ease-out 2;
+}
+@keyframes roulette-flash {
+  50% {
+    box-shadow:
+      0 0 46px rgba(255, 190, 70, 0.95),
+      inset 0 0 36px rgba(255, 190, 70, 0.45);
+  }
+}
+.roulette-pointer {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -14px;
+  border-block: 14px solid transparent;
+}
+.roulette-pointer.left {
+  left: -26px;
+  border-left: 20px solid var(--accent-to);
+}
+.roulette-pointer.right {
+  right: -26px;
+  border-right: 20px solid var(--accent-to);
+}
+.roulette-spin {
+  position: relative;
+  display: flex;
+  height: 5.5rem;
+  width: 5.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 4px solid #ffb469;
+  background: radial-gradient(circle at 35% 30%, #ff9a40, #f76500 60%, #c24d00);
+  color: var(--on-accent);
+  font:
+    800 1.15rem/1 var(--font-display),
+    sans-serif;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 8px 0 #8f3900,
+    0 14px 24px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+.roulette-spin:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.roulette-spin:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow:
+    0 2px 0 #8f3900,
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+.roulette-spin:disabled {
+  cursor: wait;
+  filter: grayscale(0.6) brightness(0.8);
+}
+@media (prefers-reduced-motion: reduce) {
+  .roulette-payline.roulette-win {
+    animation: none;
+  }
+}

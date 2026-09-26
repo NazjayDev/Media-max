@@ -485,6 +485,32 @@ export default function Home() {
         ))}
       </section>
 
+      <Link
+        href="/roulette"
+        className="group mt-5 flex w-full max-w-3xl items-center gap-4 rounded-lg border border-accent-to bg-accent-to/10 p-4 transition hover:bg-accent-to/20"
+      >
+        <span
+          aria-hidden
+          className="flex h-14 w-11 shrink-0 flex-col justify-between rounded-[4px] bg-[#060403] px-1 py-1 ring-1 ring-accent-to/60"
+        >
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={`block h-3 rounded-[2px] ${i === 1 ? "bg-accent-to" : "bg-white/25"}`}
+            />
+          ))}
+        </span>
+        <span className="min-w-0">
+          <span className="block font-[family-name:var(--font-display)] text-lg font-extrabold">
+            Can&apos;t decide? Play Media Roulette
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">
+            Spin the reel and we&apos;ll pick your next watch: anything, or just movies, TV or
+            anime.
+          </span>
+        </span>
+      </Link>
+
       <main className="mt-12 w-full max-w-5xl sm:mt-16" aria-live="polite">
         {status === "idle" && (
           <div className="flex flex-col items-center">
