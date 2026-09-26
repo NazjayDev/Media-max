@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import BackContext from "@/components/BackContext";
 import FeedbackButton from "@/components/FeedbackButton";
 import ServiceWorker from "@/components/ServiceWorker";
 import SiteHeader from "@/components/SiteHeader";
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <FeedbackButton />
           <ServiceWorker />
+          <BackContext />
         </Providers>
       </body>
     </html>

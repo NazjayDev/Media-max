@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useHasLastSearch } from "@/lib/lastSearch";
+import { useBackLabel } from "@/lib/lastSearch";
 
 /**
  * Goes back to whatever page you came from, so coming back from a title reopens your search results
@@ -10,7 +10,7 @@ import { useHasLastSearch } from "@/lib/lastSearch";
  */
 export default function BackLink({ className }: { className?: string }) {
   const router = useRouter();
-  const hasResults = useHasLastSearch();
+  const label = useBackLabel();
   return (
     <Link
       href="/"
@@ -22,7 +22,7 @@ export default function BackLink({ className }: { className?: string }) {
       }}
       className={className}
     >
-      &larr; {hasResults ? "Back to results" : "Back"}
+      &larr; {label}
     </Link>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecommendationCard from "@/components/RecommendationCard";
@@ -21,6 +21,40 @@ const SORTS = [
   ["popular", "Most popular"],
   ["rating", "Top rated"],
 ] as const;
+
+interface BrowseExtra {
+  query: string;
+  pages: number;
+  results: Recommendation[];
+  hasMore: boolean;
+}
+
+interface BrowseSnapshot {
+  query: string;
+  extra: BrowseExtra | null;
+  scrollY: number;
+}
+
+const SNAPSHOT_KEY = "mm-browse-snap-v1";
+
+function saveBrowseSnapshot(snapshot: BrowseSnapshot) {
+  try {
+    sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Storage full or blocked: going back just starts at the top.
+  }
+}
+
+/** Reads the saved position and removes it, so it only applies to the visit it was saved for. */
+function takeBrowseSnapshot(): BrowseSnapshot | null {
+  try {
+    const raw = sessionStorage.getItem(SNAPSHOT_KEY);
+    sessionStorage.removeItem(SNAPSHOT_KEY);
+    return raw ? (JSON.parse(raw) as BrowseSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
 
 interface Page {
   results: Recommendation[];
@@ -50,15 +84,28 @@ function BrowseInner() {
   // The first page comes from the address; more pages are added below it and belong to that address.
   const query = `genre=${encodeURIComponent(genre)}&type=${type}&sort=${sort}&q=${encodeURIComponent(q)}`;
   const first = useJson<Page>(`/api/browse?${query}&page=0`);
-  const [extra, setExtra] = useState<{
-    query: string;
-    pages: number;
-    results: Recommendation[];
-    hasMore: boolean;
-  } | null>(null);
+  const [extra, setExtra] = useState<BrowseExtra | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const more = extra?.query === query ? extra : null;
+
+  // Opening a title saves where you were (including any extra pages you loaded), and coming back
+  // puts it all back. It is used once, so a fresh visit to Browse starts at the top.
+  const pending = useRef<BrowseSnapshot | null | undefined>(undefined);
+  useEffect(() => {
+    if (pending.current !== undefined) return;
+    pending.current = takeBrowseSnapshot();
+  }, []);
+  useEffect(() => {
+    const snap = pending.current;
+    // The first page has to be on screen before there is anything to scroll to.
+    if (!snap || !first.data || snap.query !== query) return;
+    pending.current = null;
+    if (snap.extra) setExtra(snap.extra);
+    const y = snap.scrollY;
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)));
+    setTimeout(() => window.scrollTo(0, y), 250);
+  }, [first.data, query]);
 
   function go(next: { genre?: string; type?: string; sort?: string; q?: string }) {
     const merged = { genre, type, sort, q, ...next };
@@ -218,6 +265,11 @@ function BrowseInner() {
       <div
         className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5"
         aria-live="polite"
+        onClickCapture={(e) => {
+          if ((e.target as Element).closest('a[href^="/title/"]')) {
+            saveBrowseSnapshot({ query, extra: more, scrollY: window.scrollY });
+          }
+        }}
       >
         {first.loading && Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
         {visible.map((item, i) => (

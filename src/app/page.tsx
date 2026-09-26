@@ -320,7 +320,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center overflow-x-hidden px-4 pb-16 pt-20 sm:px-8 sm:pt-24">
+    <div className="relative flex min-h-screen flex-col items-center overflow-x-hidden px-4 pb-16 pt-[4.5rem] sm:px-8 lg:pt-10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(ellipse_at_50%_0%,rgba(247,101,0,0.2),transparent_65%)]"
@@ -328,21 +328,25 @@ export default function Home() {
 
       <h1 className="sr-only">Media Max: select your next watch</h1>
       <Image
-        src="/brand/mediamax-banner.png"
-        alt="Media Max. Select your next watch."
+        src="/brand/mediamax-wordmark.png"
+        alt="Media Max"
         width={1600}
-        height={513}
+        height={433}
         priority
         unoptimized
         className="h-auto w-[min(660px,92vw)]"
       />
-      <p className="mt-4 max-w-xl text-center text-base leading-7 text-muted sm:text-lg">
+      {/* The tagline is real text (not part of the logo image) so it stays sharp and readable. */}
+      <p className="mt-3 text-center font-[family-name:var(--font-display)] text-xl font-extrabold tracking-wide sm:text-2xl">
+        Select your next watch.
+      </p>
+      <p className="mt-2 max-w-xl text-center text-base leading-7 text-muted sm:text-lg">
         Name a movie, show or anime you love, or describe a mood. Media Max picks what to watch next
         and shows where to stream it.
       </p>
 
       {/* The reel breaks out of the page padding so it runs edge to edge, tilted like a strip in motion. */}
-      <div className="relative left-1/2 mt-7 w-[104vw] -translate-x-1/2 -rotate-[1.2deg] sm:mt-9">
+      <div className="relative left-1/2 mt-6 w-[104vw] -translate-x-1/2 -rotate-[1.2deg] sm:mt-8">
         <PosterReel kind={reelKind} />
       </div>
 

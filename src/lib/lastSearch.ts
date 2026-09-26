@@ -57,11 +57,27 @@ export function clearLastSearch() {
   }
 }
 
-/** True when there are saved results to go back to. */
-export function useHasLastSearch(): boolean {
+const BACK_LABEL_KEY = "mm-back-label-v1";
+
+/** Remembers where a title was opened from, so its Back button can say where it goes. */
+export function setBackLabel(label: string) {
+  try {
+    sessionStorage.setItem(BACK_LABEL_KEY, label);
+  } catch {
+    // Not worth reporting; the button just says "Back".
+  }
+}
+
+export function useBackLabel(): string {
   return useSyncExternalStore(
     () => () => undefined,
-    () => loadLastSearch() !== null,
-    () => false,
+    () => {
+      try {
+        return sessionStorage.getItem(BACK_LABEL_KEY) || "Back";
+      } catch {
+        return "Back";
+      }
+    },
+    () => "Back",
   );
 }
