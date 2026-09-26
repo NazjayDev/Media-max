@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { signIn, useSession } from "next-auth/react";
 import type { PublicComment } from "@/lib/comments";
 import type { MediaType } from "@/types/media";
@@ -23,13 +22,92 @@ function timeAgo(iso: string): string {
   return "just now";
 }
 
-function Avatar({ name, image }: { name: string; image: string | null }) {
-  return image ? (
-    <Image src={image} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 shrink-0 rounded-full ring-1 ring-border" />
-  ) : (
-    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent-from to-accent-to text-xs font-bold text-white">
+function Avatar({ name }: { name: string }) {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
+  return (
+    <span
+      aria-hidden
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+      style={{ backgroundColor: `hsl(${hash} 55% 42%)` }}
+    >
       {name.slice(0, 1).toUpperCase()}
     </span>
+  );
+}
+
+interface UsernameFormProps {
+  initial: string;
+  intro?: string;
+  submitLabel: string;
+  onSaved: (username: string) => void;
+  onCancel?: () => void;
+}
+
+function UsernameForm({ initial, intro, submitLabel, onSaved, onCancel }: UsernameFormProps) {
+  const [value, setValue] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save that username.");
+        return;
+      }
+      onSaved(data.username);
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="rounded-xl border border-border bg-surface px-5 py-4 text-sm">
+      {intro && <p className="mb-3 text-muted">{intro}</p>}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value.trim())}
+          maxLength={20}
+          placeholder="e.g. night_owl_42"
+          aria-label="Username"
+          autoComplete="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 rounded-full border border-border bg-background px-4 py-2 outline-none focus:border-accent-from focus:ring-4 focus:ring-accent-from/20"
+        />
+        <div className="flex gap-2">
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="rounded-full border border-border px-4 py-2 hover:border-accent-from">
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={busy || value.length < 3}
+            className="rounded-full bg-gradient-to-r from-accent-from to-accent-to px-5 py-2 font-semibold text-white disabled:opacity-50"
+          >
+            {busy ? "Saving..." : submitLabel}
+          </button>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-muted">3-20 letters, numbers, _ or -. Unique to you.</p>
+      {error && (
+        <p role="alert" className="mt-2 text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 
@@ -96,7 +174,7 @@ interface CommentViewProps {
 function CommentView({ comment, signedIn, isReply, onReply, onDelete, onReport, replyingTo, replyComposer }: CommentViewProps) {
   return (
     <li className="flex gap-3">
-      <Avatar name={comment.authorName} image={comment.authorImage} />
+      <Avatar name={comment.authorName} />
       <div className="min-w-0 flex-1">
         <p className="text-sm">
           <span className="font-semibold">{comment.authorName}</span>{" "}
@@ -159,6 +237,9 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
   const [error, setError] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  // undefined = still loading, null = signed in without a username yet
+  const [username, setUsername] = useState<string | null | undefined>(undefined);
+  const [editingName, setEditingName] = useState(false);
 
   const query = `mediaType=${mediaType}&id=${id}`;
 
@@ -193,6 +274,22 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
     };
   }, [query, nonce, loadedOlder]);
 
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("profile failed"))))
+      .then((data) => {
+        if (!cancelled) setUsername(data.username);
+      })
+      .catch(() => {
+        if (!cancelled) setUsername(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
+
   const loadOlder = useCallback(async () => {
     const last = comments[comments.length - 1];
     if (!last) return;
@@ -215,6 +312,7 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data.code === "username_required") setUsername(null);
         setError(data.error ?? "Couldn't post your comment.");
         return false;
       }
@@ -255,7 +353,35 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
 
       <div className="mt-4">
         {signedIn ? (
-          <Composer placeholder="Share your thoughts (no spoilers without a warning)" submitLabel="Post" busy={busy && replyingTo === null} onSubmit={(b) => post(b)} />
+          username === undefined ? (
+            <p className="text-sm text-muted">Loading...</p>
+          ) : username === null || editingName ? (
+            <UsernameForm
+              initial={username ?? ""}
+              intro={
+                username === null
+                  ? "Pick a username to join the discussion. It's the only name shown on your comments, so you can stay anonymous."
+                  : undefined
+              }
+              submitLabel={username === null ? "Save username" : "Update"}
+              onSaved={(name) => {
+                setUsername(name);
+                setEditingName(false);
+                setNonce((n) => n + 1);
+              }}
+              onCancel={username === null ? undefined : () => setEditingName(false)}
+            />
+          ) : (
+            <>
+              <p className="mb-2 text-xs text-muted">
+                Posting as <span className="font-semibold text-foreground">{username}</span>{" "}
+                <button type="button" onClick={() => setEditingName(true)} className="underline underline-offset-2 hover:text-foreground">
+                  Change
+                </button>
+              </p>
+              <Composer placeholder="Share your thoughts (no spoilers without a warning)" submitLabel="Post" busy={busy && replyingTo === null} onSubmit={(b) => post(b)} />
+            </>
+          )
         ) : (
           <div className="rounded-xl border border-border bg-surface px-5 py-4 text-sm">
             <p className="text-muted">Sign in to join the conversation.</p>

@@ -9,6 +9,7 @@ import {
   type PublicComment,
 } from "@/lib/comments";
 import { allowRequest } from "@/lib/rateLimit";
+import { usernamesFor } from "@/lib/profile";
 import { tmdbFetch } from "@/lib/tmdb";
 import type { MediaType } from "@/types/media";
 
@@ -60,16 +61,19 @@ export async function GET(request: NextRequest) {
         .toArray()
     : [];
 
+  const names = await usernamesFor([...page, ...replies].map((c) => c.userId));
   const repliesByParent = new Map<string, PublicComment[]>();
   for (const r of replies) {
     const key = r.parentId!.toHexString();
-    repliesByParent.set(key, [...(repliesByParent.get(key) ?? []), toPublic(r, viewerId)]);
+    repliesByParent.set(key, [...(repliesByParent.get(key) ?? []), toPublic(r, viewerId, names)]);
   }
 
   return NextResponse.json({
     total,
     hasMore,
-    comments: page.map((c) => toPublic(c, viewerId, repliesByParent.get(c._id.toHexString()) ?? [])),
+    comments: page.map((c) =>
+      toPublic(c, viewerId, names, repliesByParent.get(c._id.toHexString()) ?? [])
+    ),
   });
 }
 
@@ -102,6 +106,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Discussion is unavailable" }, { status: 503 });
   }
 
+  const names = await usernamesFor([user.id]);
+  if (!names.has(user.id)) {
+    return NextResponse.json(
+      { error: "Choose a username before posting.", code: "username_required" },
+      { status: 403 }
+    );
+  }
+
   const mediaKey = mediaKeyOf(media.mediaType, media.id);
 
   // Only real titles can have a discussion.
@@ -128,14 +140,12 @@ export async function POST(request: NextRequest) {
     mediaKey,
     parentId,
     userId: user.id,
-    authorName: (user.name ?? "Media Max viewer").slice(0, 60),
-    authorImage: user.image ?? null,
     body,
     createdAt: new Date(),
   };
   await collection.insertOne(doc);
 
-  return NextResponse.json({ comment: toPublic(doc, user.id) }, { status: 201 });
+  return NextResponse.json({ comment: toPublic(doc, user.id, names) }, { status: 201 });
 }
 
 export async function DELETE(request: NextRequest) {

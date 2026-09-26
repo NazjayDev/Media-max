@@ -7,8 +7,6 @@ export interface CommentDoc {
   mediaKey: string;
   parentId: ObjectId | null;
   userId: string;
-  authorName: string;
-  authorImage: string | null;
   body: string;
   createdAt: Date;
   reports?: string[];
@@ -19,7 +17,6 @@ export interface PublicComment {
   id: string;
   body: string;
   authorName: string;
-  authorImage: string | null;
   createdAt: string;
   mine: boolean;
   replies: PublicComment[];
@@ -38,12 +35,16 @@ export async function commentsCollection() {
   return collection;
 }
 
-export function toPublic(doc: CommentDoc, viewerId: string | undefined, replies: PublicComment[] = []): PublicComment {
+export function toPublic(
+  doc: CommentDoc,
+  viewerId: string | undefined,
+  names: Map<string, string>,
+  replies: PublicComment[] = []
+): PublicComment {
   return {
     id: doc._id.toHexString(),
     body: doc.body,
-    authorName: doc.authorName,
-    authorImage: doc.authorImage,
+    authorName: names.get(doc.userId) ?? "Anonymous",
     createdAt: doc.createdAt.toISOString(),
     mine: !!viewerId && doc.userId === viewerId,
     replies,
