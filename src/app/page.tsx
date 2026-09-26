@@ -8,6 +8,7 @@ import GenreChips from "@/components/GenreChips";
 import HowItWorks from "@/components/HowItWorks";
 import PosterReel, { type ReelKind } from "@/components/PosterReel";
 import RecentSearches from "@/components/RecentSearches";
+import SandwichRain from "@/components/SandwichRain";
 import SearchedPanel from "@/components/SearchedPanel";
 import UndoBar, { type UndoState } from "@/components/UndoBar";
 import SearchBar, { type SearchMode } from "@/components/SearchBar";
@@ -29,6 +30,9 @@ import type { MediaType, Recommendation, SearchResult, SearchSuggestion } from "
 
 type Status = "idle" | "loading" | "error" | "success";
 
+// A thank-you for our first tester, shown for these exact searches (see SandwichRain).
+const THANK_YOU_SEARCH = /^\s*(tits|sandwichgodn7)\s*[.!?]*\s*$/i;
+
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -45,6 +49,7 @@ export default function Home() {
   const [noMore, setNoMore] = useState(false);
   const [moreError, setMoreError] = useState("");
   const [undo, setUndo] = useState<UndoState | null>(null);
+  const [thankYou, setThankYou] = useState(false);
   const started = useRef(false);
 
   // Titles the person has already watched are left out of what they see.
@@ -109,6 +114,7 @@ export default function Home() {
   }
 
   async function handleSearch(rawQuery: string, viaVoice = false) {
+    if (THANK_YOU_SEARCH.test(rawQuery)) setThankYou(true);
     // Spoken requests often sound like "movies like Interstellar"; search by the title itself.
     const query =
       mode === "title" && viaVoice
@@ -401,7 +407,10 @@ export default function Home() {
       <div className="mt-8 flex w-full justify-center">
         <SearchBar
           onSearch={handleSearch}
-          onSelect={handleSelect}
+          onSelect={(title) => {
+            if (THANK_YOU_SEARCH.test(title.title)) setThankYou(true);
+            return handleSelect(title);
+          }}
           disabled={status === "loading"}
           mode={mode}
           onModeChange={setMode}
@@ -578,6 +587,7 @@ export default function Home() {
         </div>
       )}
 
+      {thankYou && <SandwichRain onClose={() => setThankYou(false)} />}
       <UndoBar undo={undo} onDismiss={() => setUndo(null)} />
 
       <footer className="mt-auto w-full max-w-5xl pt-16 text-center text-xs leading-5 text-muted">
