@@ -9,7 +9,7 @@ interface CacheEntry {
 const LOADER_CONCURRENCY = 20;
 
 /** Runs `fn` over items with at most `limit` calls in flight, keeping input order. */
-async function mapLimit<I, O>(
+export async function mapLimit<I, O>(
   items: I[],
   limit: number,
   fn: (item: I) => Promise<O>,

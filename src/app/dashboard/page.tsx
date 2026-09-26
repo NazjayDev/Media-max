@@ -6,6 +6,7 @@ import { signIn, useSession } from "next-auth/react";
 import ContinueWatching from "@/components/dashboard/ContinueWatching";
 import { Panel, Row, RowCard, SkeletonRow } from "@/components/dashboard/Row";
 import { groupWatchlist } from "@/components/dashboard/sections";
+import LetterboxdImport from "@/components/dashboard/LetterboxdImport";
 import StatsStrip from "@/components/dashboard/StatsStrip";
 import { useWatchlist } from "@/components/Providers";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -49,6 +50,11 @@ export default function DashboardPage() {
     refreshKey,
   );
   const sections = useMemo(() => groupWatchlist(items), [items]);
+
+  function onImported() {
+    reload();
+    setRefreshKey((k) => k + 1);
+  }
 
   async function runSeed() {
     setSeeding(true);
@@ -145,6 +151,9 @@ export default function DashboardPage() {
                   >
                     Find something to watch
                   </Link>
+                  <div className="mt-4 text-left">
+                    <LetterboxdImport onDone={onImported} />
+                  </div>
                 </>
               )}
             </Panel>
@@ -171,6 +180,7 @@ export default function DashboardPage() {
             )}
 
             <StatsStrip items={items} />
+            {!isDemo && <LetterboxdImport onDone={onImported} />}
             {sections.watching[0] && <ContinueWatching entry={sections.watching[0]} />}
 
             <Row
