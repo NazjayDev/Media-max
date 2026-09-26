@@ -116,6 +116,27 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
     }
   }
 
+  async function like(commentId: string) {
+    const res = await fetch("/api/comments/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: commentId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Couldn't save your like.");
+      return;
+    }
+    const { liked, likes } = (await res.json()) as { liked: boolean; likes: number };
+    const patch = (list: PublicComment[]): PublicComment[] =>
+      list.map((c) => ({
+        ...c,
+        ...(c.id === commentId ? { liked, likes } : {}),
+        replies: patch(c.replies),
+      }));
+    setComments(patch);
+  }
+
   async function remove(commentId: string) {
     if (!window.confirm("Delete this comment?")) return;
     const res = await fetch(`/api/comments?id=${commentId}`, {
@@ -224,6 +245,7 @@ export default function Discussion({ mediaType, id }: { mediaType: MediaType; id
                 comment={c}
                 signedIn={signedIn}
                 onReply={(pid) => setReplyingTo((cur) => (cur === pid ? null : pid))}
+                onLike={like}
                 onDelete={remove}
                 onStartReport={(cid) => setReportingId((cur) => (cur === cid ? null : cid))}
                 onSendReport={sendReport}

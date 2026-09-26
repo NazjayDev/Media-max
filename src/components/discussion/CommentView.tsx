@@ -20,6 +20,60 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
+function Heart({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path
+        d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LikeButton({
+  comment,
+  signedIn,
+  onLike,
+}: {
+  comment: PublicComment;
+  signedIn: boolean;
+  onLike: (id: string) => void;
+}) {
+  const count = comment.likes > 0 ? comment.likes : "";
+  // Signed-out visitors can see how many likes there are but can't add one.
+  if (!signedIn) {
+    return comment.likes > 0 ? (
+      <span className="flex items-center gap-1" title="Sign in to like comments">
+        <Heart filled />
+        {count}
+        <span className="sr-only"> likes</span>
+      </span>
+    ) : null;
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onLike(comment.id)}
+      aria-pressed={comment.liked}
+      aria-label={comment.liked ? "Unlike this comment" : "Like this comment"}
+      className={`flex items-center gap-1 transition ${
+        comment.liked ? "text-accent-from" : "hover:text-foreground"
+      }`}
+    >
+      <Heart filled={comment.liked} />
+      {count}
+    </button>
+  );
+}
+
 function CommentBody({ comment }: { comment: PublicComment }) {
   const [revealed, setRevealed] = useState(false);
 
@@ -60,6 +114,7 @@ interface CommentViewProps {
   signedIn: boolean;
   isReply?: boolean;
   onReply: (parentId: string) => void;
+  onLike: (id: string) => void;
   onDelete: (id: string) => void;
   onStartReport: (id: string) => void;
   onSendReport: (id: string, reason: ReportReason) => Promise<boolean>;
@@ -75,6 +130,7 @@ export default function CommentView({
   signedIn,
   isReply,
   onReply,
+  onLike,
   onDelete,
   onStartReport,
   onSendReport,
@@ -93,7 +149,8 @@ export default function CommentView({
           <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
         </p>
         <CommentBody comment={comment} />
-        <div className="mt-1 flex gap-3 text-xs text-muted">
+        <div className="mt-1 flex items-center gap-3 text-xs text-muted">
+          <LikeButton comment={comment} signedIn={signedIn} onLike={onLike} />
           {!isReply && signedIn && (
             <button
               type="button"
@@ -145,6 +202,7 @@ export default function CommentView({
                 signedIn={signedIn}
                 isReply
                 onReply={onReply}
+                onLike={onLike}
                 onDelete={onDelete}
                 onStartReport={onStartReport}
                 onSendReport={onSendReport}

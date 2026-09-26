@@ -11,7 +11,8 @@ import VoiceToggle from "@/components/VoiceToggle";
 const LINKS = [
   { href: "/ask", label: "Ask Media Max" },
   { href: "/together", label: "Watch Together" },
-  { href: "/trending", label: "Community trending" },
+  { href: "/community", label: "Community" },
+  { href: "/trending", label: "Trending" },
   { href: "/dashboard", label: "My dashboard" },
 ];
 

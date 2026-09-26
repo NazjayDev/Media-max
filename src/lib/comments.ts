@@ -8,7 +8,7 @@ interface CommentReport {
   at: Date;
 }
 
-interface CommentDoc {
+export interface CommentDoc {
   _id: ObjectId;
   mediaKey: string;
   parentId: ObjectId | null;
@@ -20,6 +20,13 @@ interface CommentDoc {
   spoilerFlagged?: boolean;
   reports?: CommentReport[];
   hidden?: boolean;
+  /** Number of likes, including any seeded for sample discussions. */
+  likeCount?: number;
+  /** People who liked it, so one person can only like a comment once. */
+  likedBy?: string[];
+  /** Demo-only sample discussion. Never shown to anyone but demo accounts. */
+  sample?: boolean;
+  sampleAuthor?: string;
 }
 
 export interface PublicComment {
@@ -29,6 +36,8 @@ export interface PublicComment {
   spoiler: boolean;
   createdAt: string;
   mine: boolean;
+  likes: number;
+  liked: boolean;
   replies: PublicComment[];
 }
 
@@ -41,8 +50,15 @@ export async function commentsCollection() {
   if (!db) return null;
   const collection = db.collection<CommentDoc>("comments");
   await ensureIndex(collection, { mediaKey: 1, parentId: 1, createdAt: -1 });
+  await ensureIndex(collection, { createdAt: -1 });
   return collection;
 }
+
+/** Comments anyone may see. Sample discussions are added only for demo accounts. */
+export const visibleComments = (includeSample: boolean) => ({
+  hidden: { $ne: true },
+  ...(includeSample ? {} : { sample: { $ne: true } }),
+});
 
 export function toPublic(
   doc: CommentDoc,
@@ -53,10 +69,12 @@ export function toPublic(
   return {
     id: doc._id.toHexString(),
     body: doc.body,
-    authorName: names.get(doc.userId) ?? "Anonymous",
+    authorName: doc.sampleAuthor ?? names.get(doc.userId) ?? "Anonymous",
     spoiler: !!doc.spoiler,
     createdAt: doc.createdAt.toISOString(),
     mine: !!viewerId && doc.userId === viewerId,
+    likes: doc.likeCount ?? 0,
+    liked: !!viewerId && !!doc.likedBy?.includes(viewerId),
     replies,
   };
 }

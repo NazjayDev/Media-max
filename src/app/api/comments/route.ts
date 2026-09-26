@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { jsonError, requireUser } from "@/lib/api";
-import { cleanBody, commentsCollection, toPublic, type PublicComment } from "@/lib/comments";
+import {
+  cleanBody,
+  commentsCollection,
+  toPublic,
+  visibleComments,
+  type PublicComment,
+} from "@/lib/comments";
 import { mediaKey, parseMedia } from "@/lib/media";
 import { usernamesFor } from "@/lib/profile";
 import { allowRequest } from "@/lib/rateLimit";
@@ -18,13 +24,14 @@ export async function GET(request: NextRequest) {
   const collection = await commentsCollection();
   if (!collection) return jsonError("Discussion is unavailable", 503);
 
-  const viewerId = (await auth())?.user?.id;
+  const viewer = (await auth())?.user;
+  const viewerId = viewer?.id;
   const key = mediaKey(media.mediaType, media.id);
   const beforeParam = params.get("before");
   const before =
     beforeParam && !Number.isNaN(Date.parse(beforeParam)) ? new Date(beforeParam) : null;
 
-  const visible = { mediaKey: key, hidden: { $ne: true } };
+  const visible = { mediaKey: key, ...visibleComments(!!viewer?.demo) };
   const [top, total] = await Promise.all([
     collection
       .find({ ...visible, parentId: null, ...(before ? { createdAt: { $lt: before } } : {}) })

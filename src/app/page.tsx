@@ -203,10 +203,11 @@ export default function Home() {
 
       <nav
         aria-label="Explore"
-        className="mt-5 flex w-full max-w-xl items-center justify-between gap-6 sm:justify-around"
+        className="mt-5 flex w-full max-w-xl flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:justify-around"
       >
         {[
-          ["/trending", "Community"],
+          ["/community", "Community"],
+          ["/trending", "Trending"],
           ["/dashboard", "Dashboard"],
         ].map(([href, label]) => (
           <Link
