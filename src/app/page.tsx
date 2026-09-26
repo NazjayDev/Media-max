@@ -175,8 +175,8 @@ export default function Home() {
 
       <div
         role="group"
-        aria-label="Browse by type"
-        className="mt-8 flex items-center gap-1 sm:gap-3"
+        aria-label="Change the posters on the reel"
+        className="mt-8 flex items-center gap-2"
       >
         {(
           [
@@ -190,10 +190,10 @@ export default function Home() {
             type="button"
             aria-pressed={reelKind === kind}
             onClick={() => setReelKind(reelKind === kind ? null : kind)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+            className={`min-h-11 min-w-[5.5rem] rounded-md border px-5 text-sm font-bold transition ${
               reelKind === kind
-                ? "bg-accent-to text-[var(--on-accent)]"
-                : "text-muted hover:text-foreground"
+                ? "border-accent-to bg-accent-to text-[var(--on-accent)]"
+                : "border-border bg-surface text-foreground hover:border-accent-to hover:text-accent-from"
             }`}
           >
             {label}
@@ -228,23 +228,60 @@ export default function Home() {
           onModeChange={setMode}
         />
       </div>
-      <p className="mt-4 max-w-xl text-center text-sm text-muted">
-        Or{" "}
-        <Link
-          href="/ask"
-          className="font-semibold text-accent-from underline-offset-2 hover:underline"
-        >
-          just ask Media Max
-        </Link>{" "}
-        in your own words, with limits like length or streaming service, or{" "}
-        <Link
-          href="/together"
-          className="font-semibold text-accent-from underline-offset-2 hover:underline"
-        >
-          pick something for the whole group
-        </Link>
-        .
-      </p>
+      <section
+        aria-label="Other ways to choose"
+        className="mt-6 grid w-full max-w-3xl gap-3 sm:grid-cols-2"
+      >
+        {[
+          {
+            href: "/ask",
+            title: "Ask Media Max",
+            text: "Say what you're in the mood for, with limits like length or streaming service, and keep refining.",
+            icon: (
+              <path
+                d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V15h-.5A1.5 1.5 0 0 1 5 13.5z"
+                strokeLinejoin="round"
+              />
+            ),
+          },
+          {
+            href: "/together",
+            title: "Watch Together",
+            text: "Add everyone's favorites and get picks the whole group will enjoy, ranked by who likes them least.",
+            icon: (
+              <>
+                <circle cx="9" cy="12" r="5.5" />
+                <circle cx="15" cy="12" r="5.5" />
+              </>
+            ),
+          },
+        ].map((entry) => (
+          <Link
+            key={entry.href}
+            href={entry.href}
+            className="group flex gap-4 rounded-lg border border-border bg-surface p-4 transition hover:border-accent-to hover:bg-accent-to/5"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent-to/15 text-accent-from">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden
+              >
+                {entry.icon}
+              </svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block font-[family-name:var(--font-display)] text-base font-extrabold">
+                {entry.title}
+              </span>
+              <span className="mt-1 block text-sm leading-5 text-muted">{entry.text}</span>
+            </span>
+          </Link>
+        ))}
+      </section>
 
       <main className="mt-12 w-full max-w-5xl sm:mt-16" aria-live="polite">
         {status === "idle" && (

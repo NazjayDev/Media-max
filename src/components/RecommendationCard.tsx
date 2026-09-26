@@ -13,31 +13,35 @@ interface RecommendationCardProps {
 export default function RecommendationCard({ item, index, footer }: RecommendationCardProps) {
   return (
     <article
-      className="animate-fade-up group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-from/10"
+      className="animate-fade-up group flex flex-col overflow-hidden rounded-md border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:border-accent-to/60 hover:shadow-xl hover:shadow-accent-to/10"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
-        <SaveButton item={item} />
-        <RatingChips ratings={item.ratings} />
-        <Link
-          href={`/title/${item.mediaType}/${item.id}`}
-          aria-label={`Open ${item.title} and join the discussion`}
-          className="absolute inset-0 block"
-        >
-          {item.posterPath ? (
-            <Image
-              src={item.posterPath}
-              alt={item.title}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="object-cover transition duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted">
-              No poster available
-            </div>
-          )}
-        </Link>
+      <div className="bg-[#060403]">
+        <span aria-hidden className="film-edge" />
+        <div className="relative mx-1.5 aspect-[2/3] overflow-hidden rounded-[2px] bg-zinc-800">
+          <SaveButton item={item} />
+          <RatingChips ratings={item.ratings} />
+          <Link
+            href={`/title/${item.mediaType}/${item.id}`}
+            aria-label={`Open ${item.title} and join the discussion`}
+            className="absolute inset-0 block"
+          >
+            {item.posterPath ? (
+              <Image
+                src={item.posterPath}
+                alt={item.title}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted">
+                No poster available
+              </div>
+            )}
+          </Link>
+        </div>
+        <span aria-hidden className="film-edge" />
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">

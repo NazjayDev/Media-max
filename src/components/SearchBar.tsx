@@ -64,39 +64,39 @@ export default function SearchBar({
 
       <form
         onSubmit={handleSubmit}
-        className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:gap-2"
+        className="flex w-full flex-col gap-2 sm:flex-row sm:items-start"
       >
-        <TitleCombobox
-          value={value}
-          onChange={setValue}
-          onPick={(title) => {
-            setValue(title.title);
-            onSelect(title);
-          }}
-          enabled={mode === "title"}
-          disabled={disabled}
-          maxLength={mode === "vibe" ? 300 : 120}
-          placeholder={
-            mode === "vibe"
-              ? "Describe a vibe, e.g. cozy rainy-day sci-fi with heart..."
-              : "Enter a movie, show, or anime title..."
-          }
-          ariaLabel={mode === "vibe" ? "Vibe to search for" : "Title to search for"}
-          leading={
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="m16 16 4.5 4.5" strokeLinecap="round" />
-            </svg>
-          }
-          className="w-full rounded-full border border-border bg-surface py-3 pl-12 pr-5 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
-        />
-        <div className="flex justify-center sm:block">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <TitleCombobox
+            value={value}
+            onChange={setValue}
+            onPick={(title) => {
+              setValue(title.title);
+              onSelect(title);
+            }}
+            enabled={mode === "title"}
+            disabled={disabled}
+            maxLength={mode === "vibe" ? 300 : 120}
+            placeholder={
+              mode === "vibe"
+                ? "Describe a vibe, e.g. cozy rainy-day sci-fi with heart..."
+                : "Enter a movie, show, or anime title..."
+            }
+            ariaLabel={mode === "vibe" ? "Vibe to search for" : "Title to search for"}
+            leading={
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="m16 16 4.5 4.5" strokeLinecap="round" />
+              </svg>
+            }
+            className="w-full rounded-full border border-border bg-surface py-3 pl-12 pr-5 text-base text-foreground shadow-sm outline-none transition focus:border-accent-from focus:ring-4 focus:ring-accent-from/20 disabled:opacity-60"
+          />
           <MicButton
             disabled={disabled}
             onTranscript={(text) => {
@@ -109,7 +109,7 @@ export default function SearchBar({
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="rounded-full bg-gradient-to-r from-accent-from to-accent-to px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-accent-from/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          className="w-full rounded-full bg-gradient-to-r from-accent-from to-accent-to px-7 py-3.5 text-base font-bold shadow-lg shadow-accent-to/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:border disabled:border-border disabled:bg-none disabled:bg-surface disabled:text-muted disabled:shadow-none sm:w-auto"
         >
           {disabled ? "Searching..." : "Search"}
         </button>

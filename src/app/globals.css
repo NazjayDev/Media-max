@@ -13,6 +13,8 @@
   --accent-from: #ff7a14;
   --accent-to: #f76500;
   --on-accent: #1a0d02;
+  /* One sprocket hole, tiled along film edges. */
+  --hole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' preserveAspectRatio='none'%3E%3Crect x='5' y='6' width='14' height='12' rx='3' fill='%23e8dccd'/%3E%3C/svg%3E");
 }
 
 @theme inline {
@@ -42,7 +44,7 @@ h2 {
 }
 
 /* Orange buttons carry dark text: white on this orange is below readable contrast at small sizes. */
-.from-accent-from.to-accent-to:not(.text-transparent) {
+.from-accent-from.to-accent-to:not(.text-transparent):not(:disabled) {
   color: var(--on-accent);
 }
 
@@ -190,4 +192,13 @@ a.reel-poster:focus-visible {
     overflow-x: auto;
     mask-image: none;
   }
+}
+
+/* Sprocket edge along the top and bottom of a poster card, like the reel. */
+.film-edge {
+  display: block;
+  height: 12px;
+  background: var(--hole) repeat-x;
+  background-size: 14px 12px;
+  opacity: 0.55;
 }
