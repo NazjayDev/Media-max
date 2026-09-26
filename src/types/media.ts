@@ -21,4 +21,5 @@ export interface Recommendation {
   synopsis: string;
   streamingProviders: StreamingProvider[];
   why?: string;
+  blurb?: string;
 }

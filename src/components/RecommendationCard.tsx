@@ -42,7 +42,7 @@ export default function RecommendationCard({ item, index }: RecommendationCardPr
             item.why ? "line-clamp-2" : "line-clamp-3"
           }`}
         >
-          {item.synopsis || "No synopsis available."}
+          {item.blurb || item.synopsis || "No synopsis available."}
         </p>
 
         <div className="mt-auto pt-3">

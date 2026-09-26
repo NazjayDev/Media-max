@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "@google/genai";
 import { suggestByVibe } from "@/lib/vibe";
+import { vibeRecommendations } from "@/lib/recommend";
 import { lookupRecommendation } from "@/lib/tmdb";
 import type { Recommendation } from "@/types/media";
 
@@ -25,6 +26,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    try {
+      const results = await vibeRecommendations(vibe);
+      return NextResponse.json({ results });
+    } catch (error) {
+      console.error("Catalog vibe search failed, using generative fallback:", error);
+    }
+
     const suggestions = await suggestByVibe(vibe);
 
     const looked = await Promise.all(

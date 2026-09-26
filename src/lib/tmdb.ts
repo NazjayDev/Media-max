@@ -2,7 +2,7 @@ import { cached } from "@/lib/cache";
 import type { MediaType, Recommendation, SearchResult, StreamingProvider } from "@/types/media";
 
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
+export const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
 
 const DEFAULT_REGION = process.env.TMDB_WATCH_REGION || "US";
 
@@ -19,7 +19,7 @@ function getAuthHeaders(): HeadersInit {
 
 const CACHE_TTL_SECONDS = 12 * 60 * 60;
 
-async function tmdbFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
+export async function tmdbFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(`${TMDB_API_BASE_URL}${path}`);
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -80,12 +80,15 @@ export async function searchTitle(query: string): Promise<SearchResult | null> {
   };
 }
 
-interface TmdbRecommendationResult {
+export interface TmdbRecommendationResult {
   id: number;
   title?: string;
   name?: string;
   poster_path: string | null;
   overview: string;
+  genre_ids?: number[];
+  release_date?: string;
+  first_air_date?: string;
 }
 
 interface TmdbRecommendationResponse {
@@ -102,7 +105,7 @@ interface TmdbWatchProvidersResponse {
   results: Record<string, { flatrate?: TmdbWatchProvider[] }>;
 }
 
-async function fetchRawRecommendations(
+export async function fetchRawRecommendations(
   mediaType: MediaType,
   id: number
 ): Promise<TmdbRecommendationResult[]> {
@@ -154,7 +157,7 @@ export async function lookupRecommendation(
   };
 }
 
-async function getWatchProviders(
+export async function getWatchProviders(
   mediaType: MediaType,
   id: number,
   region: string
