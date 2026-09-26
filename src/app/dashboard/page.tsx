@@ -19,6 +19,21 @@ interface BecauseRow {
   results: Recommendation[];
 }
 
+// Building these from scratch calls the AI once per title, so a first visit can take a while.
+const BECAUSE_MESSAGES: [number, string][] = [
+  [0, "Finding titles like the ones you watched most recently..."],
+  [5, "Comparing tone, themes and pacing across the catalog..."],
+  [
+    12,
+    "First visit builds these from scratch and can take up to 30 seconds. After that it's instant.",
+  ],
+];
+const PICKS_MESSAGES: [number, string][] = [
+  [0, "Learning your taste from what you rated highly..."],
+  [6, "Picking titles you haven't seen yet..."],
+  [14, "Almost there. This is the slow first build; later visits load instantly."],
+];
+
 const withControls = (entries: WatchlistEntry[]) =>
   entries.map((entry, i) => (
     <RowCard
@@ -226,7 +241,9 @@ export default function DashboardPage() {
               {withControls(sections.topRated)}
             </Row>
 
-            {because.loading && <SkeletonRow title="Because you watched..." />}
+            {because.loading && (
+              <SkeletonRow title="Because you watched..." messages={BECAUSE_MESSAGES} />
+            )}
             {because.failed && (
               <div className="mt-10">
                 <Panel>
@@ -248,7 +265,7 @@ export default function DashboardPage() {
             ))}
 
             {picks.loading ? (
-              <SkeletonRow title="Picked for you" />
+              <SkeletonRow title="Picked for you" messages={PICKS_MESSAGES} />
             ) : (
               <Row
                 id="picks"

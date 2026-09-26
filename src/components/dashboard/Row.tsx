@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import RecommendationCard from "@/components/RecommendationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import type { Recommendation } from "@/types/media";
@@ -61,11 +64,38 @@ export function RowCard({
   );
 }
 
-/** Placeholder row shown while a section loads. */
-export function SkeletonRow({ title }: { title: string }) {
+/** Seconds since mount, ticking once a second, so loading text can change as a wait drags on. */
+function useElapsedSeconds(): number {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return seconds;
+}
+
+/**
+ * Placeholder row shown while a section loads. `messages` are shown in turn as the wait grows:
+ * each entry is [seconds after which it appears, text].
+ */
+export function SkeletonRow({ title, messages }: { title: string; messages?: [number, string][] }) {
+  const elapsed = useElapsedSeconds();
+  const message = messages?.filter(([after]) => elapsed >= after).at(-1)?.[1];
+
   return (
     <section className="mt-10" aria-label={`${title} (loading)`}>
-      <h2 className="mb-3 text-xl font-bold">{title}</h2>
+      <h2 className="text-xl font-bold">{title}</h2>
+      <p role="status" className="mb-3 mt-1 flex min-h-5 items-center gap-2 text-sm text-muted">
+        {message && (
+          <>
+            <span
+              aria-hidden
+              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent-from"
+            />
+            {message}
+          </>
+        )}
+      </p>
       <div className="flex gap-3 overflow-hidden">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="w-44 shrink-0 sm:w-52">
