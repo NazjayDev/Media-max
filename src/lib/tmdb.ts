@@ -114,41 +114,6 @@ async function fetchRawRecommendations(
   return similar.results;
 }
 
-interface TmdbTitleSearchResponse {
-  results: (TmdbRecommendationResult & {
-    release_date?: string;
-    first_air_date?: string;
-  })[];
-}
-
-/** Looks up one specific title by name (and optional year) and returns it with providers. */
-export async function lookupRecommendation(
-  title: string,
-  mediaType: MediaType,
-  year?: number,
-  region: string = DEFAULT_REGION
-): Promise<Recommendation | null> {
-  const params: Record<string, string> = { query: title, include_adult: "false" };
-  if (year) {
-    params[mediaType === "movie" ? "year" : "first_air_date_year"] = String(year);
-  }
-
-  const data = await tmdbFetch<TmdbTitleSearchResponse>(`/search/${mediaType}`, params);
-  const hit = data.results[0];
-  if (!hit) {
-    return null;
-  }
-
-  return {
-    id: hit.id,
-    mediaType,
-    title: hit.title ?? hit.name ?? title,
-    posterPath: hit.poster_path ? `${TMDB_IMAGE_BASE_URL}/w342${hit.poster_path}` : null,
-    synopsis: hit.overview,
-    streamingProviders: await getWatchProviders(mediaType, hit.id, region),
-  };
-}
-
 async function getWatchProviders(
   mediaType: MediaType,
   id: number,
