@@ -30,7 +30,7 @@ export async function GET() {
           snapshot: record.snapshot,
           explorerUrl: explorerUrl(record._id),
           txUrl: record.signature ? explorerTxUrl(record.signature) : null,
-          imageUrl: `/api/passport/${record._id}/image`,
+          imageUrl: `/api/passport/${record._id}/image?v=${record.updatedAt.getTime()}`,
           updatedAt: record.updatedAt,
         }
       : null,
