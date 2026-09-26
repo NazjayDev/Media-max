@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api";
 import { attachRatings } from "@/lib/ratings";
 import { allowRequest, clientIp } from "@/lib/rateLimit";
-import { MAX_PEOPLE, MAX_TITLES_EACH, groupRecommendations, type Person } from "@/lib/together";
+import {
+  MAX_PEOPLE,
+  MAX_TITLES_EACH,
+  UnrecognisedTitles,
+  groupRecommendations,
+  type Person,
+} from "@/lib/together";
 
 export const maxDuration = 60;
 
@@ -34,6 +40,13 @@ export async function POST(request: NextRequest) {
     const rated = await attachRatings(result.picks);
     return NextResponse.json({ ...result, picks: rated });
   } catch (error) {
+    if (error instanceof UnrecognisedTitles) {
+      const names = error.unmatched.slice(0, 4).join(", ");
+      return jsonError(
+        `We couldn't find ${names || "those titles"}. Try the exact movie or show name.`,
+        422,
+      );
+    }
     console.error("Group request failed:", error instanceof Error ? error.message : error);
     return jsonError("Couldn't blend those tastes. Check the titles and try again.", 502);
   }

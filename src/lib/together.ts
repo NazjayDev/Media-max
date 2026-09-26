@@ -135,7 +135,7 @@ export async function groupRecommendations(people: Person[]): Promise<GroupResul
     const usable = tastes.filter((t) => t.vector);
     const summary = tastes.map(({ name, matched, unmatched }) => ({ name, matched, unmatched }));
     if (usable.length < 2) {
-      throw new Error("Need favorites for at least two people that we could recognise");
+      throw new UnrecognisedTitles(tastes.flatMap((t) => t.unmatched));
     }
 
     const seen = new Set(usable.flatMap((t) => t.keys));
@@ -222,5 +222,12 @@ ${candidates
 class DegradedGroup extends Error {
   constructor(readonly result: GroupResult) {
     super("Returning vector-ranked group picks without LLM refinement");
+  }
+}
+
+/** Fewer than two people had a favorite we could find; lists what we couldn't match. */
+export class UnrecognisedTitles extends Error {
+  constructor(readonly unmatched: string[]) {
+    super("Need favorites for at least two people that we could recognise");
   }
 }

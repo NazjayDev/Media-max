@@ -247,7 +247,7 @@ function TogetherInner() {
                   <div className="mt-2 flex flex-col gap-1" aria-label="Fit for each person">
                     {result.people.map((p, n) => (
                       <div key={n} className="flex items-center gap-2 text-[11px] text-muted">
-                        <span className="w-14 truncate">{p.name}</span>
+                        <span className="w-10 truncate sm:w-14">{p.name}</span>
                         <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-400/30">
                           <span
                             className={`block h-full rounded-full ${DOT_COLORS[n]}`}
