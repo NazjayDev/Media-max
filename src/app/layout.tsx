@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import BackContext from "@/components/BackContext";
 import FeedbackButton from "@/components/FeedbackButton";
+import GlobalUsernamePrompt from "@/components/GlobalUsernamePrompt";
 import ServiceWorker from "@/components/ServiceWorker";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <FeedbackButton />
           <ServiceWorker />
+          <GlobalUsernamePrompt />
           <BackContext />
         </Providers>
       </body>

@@ -51,6 +51,7 @@ export async function commentsCollection() {
   const collection = db.collection<CommentDoc>("comments");
   await ensureIndex(collection, { mediaKey: 1, parentId: 1, createdAt: -1 });
   await ensureIndex(collection, { createdAt: -1 });
+  await ensureIndex(collection, { userId: 1, likeCount: -1 });
   return collection;
 }
 
@@ -87,4 +88,35 @@ export function cleanBody(raw: unknown): string | null {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return body.length > 0 && body.length <= MAX_COMMENT_LENGTH ? body : null;
+}
+
+export interface TopPost {
+  id: string;
+  mediaKey: string;
+  body: string;
+  spoiler: boolean;
+  likes: number;
+  createdAt: string;
+}
+
+/** A person's own best comments (by likes), for showing on their profile. Never sample data. */
+export async function topPostsFor(userId: string, limit = 5): Promise<TopPost[]> {
+  const collection = await commentsCollection();
+  if (!collection) return [];
+  const docs = await collection
+    .find(
+      { userId, hidden: { $ne: true }, sample: { $ne: true } },
+      { projection: { mediaKey: 1, body: 1, spoiler: 1, likeCount: 1, createdAt: 1 } },
+    )
+    .sort({ likeCount: -1, createdAt: -1 })
+    .limit(limit)
+    .toArray();
+  return docs.map((d) => ({
+    id: d._id.toHexString(),
+    mediaKey: d.mediaKey,
+    body: d.body,
+    spoiler: !!d.spoiler,
+    likes: d.likeCount ?? 0,
+    createdAt: d.createdAt.toISOString(),
+  }));
 }
