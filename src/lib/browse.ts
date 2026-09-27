@@ -37,7 +37,8 @@ export async function browseTitles(
   page: number,
   search = "",
 ): Promise<BrowsePage> {
-  const names = GENRES.find((g) => g.label === genre)?.names;
+  const entry = GENRES.find((g) => g.label === genre);
+  const names = type === "tv" && entry?.tvNames ? entry.tvNames : entry?.names;
   const text = search.trim().toLowerCase();
   return cached(
     `browse2:${genre ?? "all"}:${type}:${sort}:${page}:${text}`,
